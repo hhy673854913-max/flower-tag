@@ -1,0 +1,5 @@
+{
+  "navigationBarTitleText": "花艺图库",
+  "enablePullDownRefresh": true,
+  "onReachBottomDistance": 100
+}

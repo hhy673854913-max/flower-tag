@@ -1,0 +1,4 @@
+{
+  "desc": "花艺图库小程序索引配置",
+  "rules": [{ "action": "allow", "page": "*" }]
+}

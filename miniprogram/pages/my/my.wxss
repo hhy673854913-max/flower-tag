@@ -1,0 +1,67 @@
+.stat-card {
+  background: linear-gradient(135deg, #2e7d4f, #4a9e6c);
+  border-radius: 20rpx;
+  padding: 40rpx 32rpx;
+  color: #fff;
+}
+.stat-main {
+  text-align: center;
+  margin-bottom: 32rpx;
+}
+.stat-num {
+  font-size: 72rpx;
+  font-weight: 700;
+}
+.stat-label {
+  font-size: 24rpx;
+  opacity: 0.85;
+}
+.stat-grid {
+  display: flex;
+}
+.stat-item {
+  flex: 1;
+  text-align: center;
+}
+.stat-item .v {
+  font-size: 32rpx;
+  font-weight: 600;
+}
+.stat-item .k {
+  font-size: 22rpx;
+  opacity: 0.85;
+  margin-top: 6rpx;
+}
+
+.menu {
+  margin-top: 32rpx;
+  background: #fff;
+  border-radius: 20rpx;
+  overflow: hidden;
+}
+.menu-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 32rpx;
+  border-bottom: 2rpx solid #f0f3f0;
+  font-size: 28rpx;
+}
+.menu-item:last-child {
+  border-bottom: none;
+}
+.menu-left {
+  flex: 1;
+}
+.menu-sub {
+  font-size: 22rpx;
+  color: #9aa39a;
+  margin-top: 6rpx;
+}
+.arrow {
+  color: #c4ccc4;
+  font-size: 36rpx;
+}
+.danger {
+  color: #c0392b;
+}

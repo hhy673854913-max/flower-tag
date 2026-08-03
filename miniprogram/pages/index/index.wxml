@@ -1,0 +1,22 @@
+<view class="page">
+  <view class="header" wx:if="{{list.length}}">
+    <text class="title">我的作品</text>
+    <text class="count">{{total}} 条记录</text>
+  </view>
+
+  <view wx:if="{{!list.length && !loading}}" class="empty">
+    <view class="empty-icon">🌸</view>
+    <view>还没有作品记录</view>
+    <view>点击底部「上传」，让 Kimi 帮你自动打标签</view>
+  </view>
+
+  <view class="grid">
+    <view class="cell" wx:for="{{list}}" wx:key="_id" bindtap="goDetail" data-id="{{item._id}}">
+      <image class="thumb" src="{{item.url}}" mode="aspectFill" lazy-load />
+      <view class="cell-tags">{{item.desc}}</view>
+    </view>
+  </view>
+
+  <view class="foot" wx:if="{{loading}}">加载中…</view>
+  <view class="foot" wx:elif="{{noMore && list.length}}">没有更多了</view>
+</view>

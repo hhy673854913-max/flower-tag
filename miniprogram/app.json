@@ -1,0 +1,30 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/filter/filter",
+    "pages/upload/upload",
+    "pages/my/my",
+    "pages/confirm/confirm",
+    "pages/detail/detail",
+    "pages/tags/tags"
+  ],
+  "window": {
+    "navigationBarBackgroundColor": "#ffffff",
+    "navigationBarTitleText": "花艺图库",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#f6f8f6"
+  },
+  "tabBar": {
+    "color": "#9aa39a",
+    "selectedColor": "#2e7d4f",
+    "backgroundColor": "#ffffff",
+    "list": [
+      { "pagePath": "pages/index/index", "text": "作品墙" },
+      { "pagePath": "pages/filter/filter", "text": "筛选" },
+      { "pagePath": "pages/upload/upload", "text": "上传" },
+      { "pagePath": "pages/my/my", "text": "我的" }
+    ]
+  },
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents"
+}

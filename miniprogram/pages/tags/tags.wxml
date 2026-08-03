@@ -1,0 +1,21 @@
+<view class="page">
+  <view class="tip">这里展示你所有记录累计使用过的标签。花材支持手动新增；删除词条不影响已有记录。</view>
+
+  <block wx:for="{{groups}}" wx:key="dim">
+    <view class="section-title">
+      {{item.name}}
+      <text wx:if="{{item.dim === 'flower'}}" class="add-btn" bindtap="addFlower">＋ 新增花材</text>
+    </view>
+    <view class="chip-wrap" wx:if="{{item.items.length}}">
+      <view class="chip tag-chip" wx:for="{{item.items}}" wx:for-item="tag" wx:key="_id">
+        {{tag.name}}
+        <text class="cnt">{{tag.count}}</text>
+        <text wx:if="{{tag.roleName}}" class="role-badge">{{tag.roleName}}</text>
+        <text wx:if="{{tag.deletable}}" class="del" data-id="{{tag._id}}" data-name="{{tag.name}}" catchtap="removeTag">✕</text>
+      </view>
+    </view>
+    <view class="none-tip" wx:else>暂无使用记录</view>
+  </block>
+
+  <view class="foot" wx:if="{{loading}}">加载中…</view>
+</view>

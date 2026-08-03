@@ -1,0 +1,52 @@
+<view class="page" wx:if="{{record}}">
+  <image class="hero" src="{{url}}" mode="aspectFit" bindtap="previewOriginal" />
+  <view class="btn-ghost orig-btn" bindtap="previewOriginal">{{loadingOriginal ? '原图加载中…' : '查看原图'}}</view>
+
+  <view class="edit-tip" wx:if="{{editing}}">编辑模式：点选修改标签，花材长按可调整角色</view>
+
+  <!-- 通用维度（选中态由 JS 预算到 opt.on，WXML 不支持 indexOf） -->
+  <block wx:for="{{dimView}}" wx:for-item="dim" wx:for-index="dimIdx" wx:key="key">
+    <view class="section-title">{{dim.name}}</view>
+    <view class="chip-wrap">
+      <view
+        wx:for="{{dim.options}}"
+        wx:for-item="opt"
+        wx:for-index="optIdx"
+        wx:key="name"
+        class="chip {{opt.on ? 'on' : ''}}"
+        data-key="{{dim.key}}"
+        data-value="{{opt.name}}"
+        data-multi="{{dim.multi}}"
+        bindtap="toggleTag"
+      >{{opt.name}}</view>
+    </view>
+  </block>
+
+  <!-- 花材 -->
+  <view class="section-title">花材</view>
+  <view class="flower-block" wx:for="{{roles}}" wx:for-item="role" wx:key="key">
+    <view class="flower-role">{{role.name}}</view>
+    <view class="chip-wrap">
+      <view
+        class="chip"
+        wx:for="{{record[role.key]}}"
+        wx:for-item="fname"
+        wx:key="*this"
+        data-role="{{role.key}}"
+        data-index="{{index}}"
+        bindlongpress="moveFlower"
+      >{{fname}}<text wx:if="{{editing}}" class="del" data-role="{{role.key}}" data-index="{{index}}" catchtap="removeFlower">✕</text></view>
+      <view wx:if="{{editing}}" class="chip add-chip" data-role="{{role.key}}" bindtap="addFlower">＋ 添加</view>
+    </view>
+    <view class="none-flower" wx:if="{{!record[role.key].length}}">无</view>
+  </view>
+
+  <view class="action-row" wx:if="{{!editing}}">
+    <view class="btn-ghost act" bindtap="toggleEdit">编辑标签</view>
+    <view class="btn-danger act" bindtap="remove">删除</view>
+  </view>
+  <view class="action-row" wx:else>
+    <view class="btn-ghost act" bindtap="toggleEdit">取消</view>
+    <view class="btn-primary act {{saving ? 'disabled' : ''}}" bindtap="save">保存修改</view>
+  </view>
+</view>

@@ -1,0 +1,40 @@
+<view class="page">
+  <view class="tip-card">
+    <view class="tip-title">{{lossless ? '当前为无损模式' : '当前为省流模式'}}</view>
+    <view class="tip-text" wx:if="{{lossless}}">原图将不经过任何压缩直接存入你的云端空间；AI 分析只使用临时压缩副本，分析后即删除。</view>
+    <view class="tip-text" wx:else>上传前会进行高画质压缩（有损）。如需无损存档，请到「我的 → 上传模式」切换。</view>
+  </view>
+
+  <view class="pick-row" wx:if="{{!items.length}}">
+    <view class="btn-primary pick-btn" bindtap="choose" data-source="album">从相册选择（最多9张）</view>
+    <view class="btn-ghost pick-btn" bindtap="choose" data-source="camera">拍照上传</view>
+  </view>
+
+  <block wx:if="{{items.length}}">
+    <view class="progress-summary">
+      共 {{items.length}} 张 · 完成 {{doneCount}}<text wx:if="{{failCount}}"> · 失败 {{failCount}}</text>
+      <text class="clear" wx:if="{{!running}}" bindtap="clearList">清空</text>
+    </view>
+
+    <view class="item" wx:for="{{items}}" wx:key="index">
+      <image class="item-thumb" src="{{item.tempPath}}" mode="aspectFill" />
+      <view class="item-info">
+        <view class="item-status s-{{item.status}}">
+          <block wx:if="{{item.status === 'pending'}}">等待处理…</block>
+          <block wx:elif="{{item.status === 'uploading'}}">原图上传中…</block>
+          <block wx:elif="{{item.status === 'analyzing'}}">Kimi 分析中…</block>
+          <block wx:elif="{{item.status === 'done'}}">✓ 打标完成</block>
+          <block wx:else>✗ {{item.error}}</block>
+        </view>
+        <view class="item-tags" wx:if="{{item.status === 'done'}}">
+          {{item.tags.category}} · {{item.tags.style}}<block wx:if="{{item.tags.flowersMain.length}}"> · {{item.tags.flowersMain[0]}}</block>
+        </view>
+        <view class="retry" wx:if="{{item.status === 'error' && !running}}" bindtap="retry" data-index="{{index}}">重试</view>
+      </view>
+    </view>
+
+    <view class="btn-primary {{running || !doneCount ? 'disabled' : ''}}" style="margin-top:40rpx" bindtap="goConfirm">
+      去确认标签（{{doneCount}}）
+    </view>
+  </block>
+</view>

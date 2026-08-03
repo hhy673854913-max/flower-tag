@@ -1,0 +1,77 @@
+.tip-card {
+  background: #eef6f0;
+  border: 2rpx solid #cfe5d6;
+  border-radius: 16rpx;
+  padding: 24rpx 28rpx;
+}
+.tip-title {
+  font-weight: 600;
+  color: #2e7d4f;
+  margin-bottom: 8rpx;
+}
+.tip-text {
+  font-size: 24rpx;
+  color: #5a6b5f;
+  line-height: 1.6;
+}
+
+.pick-row {
+  margin-top: 48rpx;
+}
+.pick-btn {
+  margin-bottom: 28rpx;
+}
+
+.progress-summary {
+  margin: 24rpx 0;
+  color: #6b736b;
+  font-size: 26rpx;
+}
+.progress-summary .clear {
+  float: right;
+  color: #c0392b;
+}
+
+.item {
+  display: flex;
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 20rpx;
+  margin-bottom: 20rpx;
+  align-items: center;
+}
+.item-thumb {
+  width: 140rpx;
+  height: 140rpx;
+  border-radius: 12rpx;
+  background: #e9efe9;
+  flex-shrink: 0;
+}
+.item-info {
+  margin-left: 24rpx;
+  flex: 1;
+  min-width: 0;
+}
+.item-status {
+  font-size: 28rpx;
+}
+.s-done { color: #2e7d4f; }
+.s-error { color: #c0392b; font-size: 24rpx; }
+.s-uploading, .s-analyzing { color: #b8860b; }
+.item-tags {
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: #6b736b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.retry {
+  display: inline-block;
+  margin-top: 10rpx;
+  padding: 6rpx 28rpx;
+  border: 2rpx solid #c0392b;
+  color: #c0392b;
+  border-radius: 28rpx;
+  font-size: 24rpx;
+}

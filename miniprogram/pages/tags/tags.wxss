@@ -1,0 +1,40 @@
+.tip {
+  background: #eef6f0;
+  color: #5a6b5f;
+  font-size: 24rpx;
+  border-radius: 12rpx;
+  padding: 20rpx 24rpx;
+  line-height: 1.6;
+}
+.section-title {
+  justify-content: space-between;
+}
+.add-btn {
+  font-size: 24rpx;
+  color: #2e7d4f;
+  font-weight: 400;
+}
+.tag-chip .del {
+  margin-left: 10rpx;
+  color: #c0392b;
+  font-size: 22rpx;
+}
+.role-badge {
+  margin-left: 8rpx;
+  font-size: 20rpx;
+  background: #eef2ee;
+  color: #6b736b;
+  border-radius: 8rpx;
+  padding: 2rpx 10rpx;
+}
+.none-tip {
+  color: #9aa39a;
+  font-size: 24rpx;
+  padding: 12rpx 0;
+}
+.foot {
+  text-align: center;
+  color: #9aa39a;
+  font-size: 24rpx;
+  padding: 40rpx 0;
+}

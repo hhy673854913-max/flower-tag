@@ -1,0 +1,61 @@
+<view class="confirm-page" wx:if="{{cur}}">
+  <swiper class="swiper" current="{{current}}" bindchange="onSwiperChange">
+    <swiper-item wx:for="{{items}}" wx:key="fileID">
+      <scroll-view scroll-y class="swiper-scroll">
+        <image class="preview" src="{{item.tempPath}}" mode="aspectFit" />
+
+        <view wx:if="{{index === current}}" class="editor">
+          <!-- 通用维度：颜色 / 种类 / 风格 / 用途（选中态由 JS 预算到 opt.on，WXML 不支持 indexOf） -->
+          <block wx:for="{{dimView}}" wx:for-item="dim" wx:for-index="dimIdx" wx:key="key">
+            <view class="section-title">
+              {{dim.name}}
+              <text class="warn" wx:if="{{cur.tags.confidence[dim.key] < 0.6}}">⚠ AI 不太确定，请确认</text>
+            </view>
+            <view class="chip-wrap">
+              <view
+                wx:for="{{dim.options}}"
+                wx:for-item="opt"
+                wx:for-index="optIdx"
+                wx:key="name"
+                class="chip {{opt.on ? 'on' : ''}}"
+                data-key="{{dim.key}}"
+                data-value="{{opt.name}}"
+                data-multi="{{dim.multi}}"
+                bindtap="toggleTag"
+              >{{opt.name}}</view>
+            </view>
+          </block>
+
+          <!-- 花材：主花 / 辅花 / 叶材 -->
+          <view class="section-title">
+            花材
+            <text class="warn" wx:if="{{cur.tags.confidence.flowers < 0.6}}">⚠ AI 不太确定，请确认</text>
+            <text class="hint">（点 ✕ 删除，长按调整角色）</text>
+          </view>
+          <view class="flower-block" wx:for="{{roles}}" wx:for-item="role" wx:key="key">
+            <view class="flower-role">{{role.name}}</view>
+            <view class="chip-wrap">
+              <view
+                class="chip flower-chip"
+                wx:for="{{cur.tags[role.key]}}"
+                wx:for-item="fname"
+                wx:key="*this"
+                data-role="{{role.key}}"
+                data-index="{{index}}"
+                bindlongpress="moveFlower"
+              >{{fname}}<text class="del" data-role="{{role.key}}" data-index="{{index}}" catchtap="removeFlower">✕</text></view>
+              <view class="chip add-chip" data-role="{{role.key}}" bindtap="addFlower">＋ 添加</view>
+            </view>
+          </view>
+
+          <view class="action-row">
+            <view class="btn-ghost act" bindtap="skipCurrent">跳过</view>
+            <view class="btn-primary act" bindtap="saveCurrent">保存本张</view>
+          </view>
+          <view class="btn-primary {{saving ? 'disabled' : ''}} save-all" bindtap="saveAll">全部保存（剩余 {{remaining}}）</view>
+          <view class="bottom-gap"></view>
+        </view>
+      </scroll-view>
+    </swiper-item>
+  </swiper>
+</view>

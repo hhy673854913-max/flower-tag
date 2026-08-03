@@ -1,0 +1,65 @@
+<view class="page">
+  <view wx:if="{{!records.length && !loading}}" class="empty">
+    <view class="empty-icon">🔍</view>
+    <view>还没有可筛选的记录</view>
+    <view>先去「上传」整理一些作品吧</view>
+  </view>
+
+  <block wx:if="{{records.length}}">
+    <!-- 花材筛选（含角色） -->
+    <view class="section-title">花材</view>
+    <view class="role-tabs">
+      <view
+        wx:for="{{roleTabs}}"
+        wx:key="key"
+        class="role-tab {{roleMode === item.key ? 'on' : ''}}"
+        data-mode="{{item.key}}"
+        bindtap="setRoleMode"
+      >{{item.name}}</view>
+    </view>
+    <scroll-view scroll-x class="hscroll" wx:if="{{flowers.length}}">
+      <view class="hrow">
+        <view
+          wx:for="{{flowers}}"
+          wx:key="name"
+          class="chip {{item.on ? 'on' : ''}}"
+          data-index="{{index}}"
+          bindtap="toggleFlower"
+        >{{item.name}}<text class="cnt">{{item.main + item.sub + item.leaf}}</text></view>
+      </view>
+    </scroll-view>
+    <view class="none-tip" wx:else>暂无花材标签</view>
+
+    <!-- 其他维度 -->
+    <block wx:for="{{dims}}" wx:for-item="dim" wx:for-index="dimIdx" wx:key="key">
+      <view class="section-title">{{dim.name}}</view>
+      <scroll-view scroll-x class="hscroll">
+        <view class="hrow">
+          <view
+            wx:for="{{dim.options}}"
+            wx:for-item="opt"
+            wx:for-index="optIdx"
+            wx:key="name"
+            class="chip {{opt.on ? 'on' : ''}}"
+            data-dim="{{dimIdx}}"
+            data-index="{{optIdx}}"
+            bindtap="toggleDim"
+          >{{opt.name}}<text class="cnt">{{opt.count}}</text></view>
+        </view>
+      </scroll-view>
+    </block>
+
+    <!-- 结果 -->
+    <view class="result-bar">
+      <text>{{hasFilter ? '命中 ' + results.length + ' 条' : '全部 ' + records.length + ' 条'}}</text>
+      <text class="clear" wx:if="{{hasFilter}}" bindtap="clearAll">清空筛选</text>
+    </view>
+    <view class="grid">
+      <view class="cell" wx:for="{{results}}" wx:key="_id" bindtap="goDetail" data-id="{{item._id}}">
+        <image class="thumb" src="{{item.url}}" mode="aspectFill" lazy-load />
+        <view class="cell-tags">{{item.desc}}</view>
+      </view>
+    </view>
+    <view class="none-tip" wx:if="{{hasFilter && !results.length}}">没有符合条件的作品，换个组合试试</view>
+  </block>
+</view>
