@@ -19,15 +19,21 @@ Page({
     loading: true,
     hasFilter: false
   },
+  
+  _lastLoadTime: 0,
 
   onShow() {
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ selected: 1 });
     }
-    this.loadAll();
+    const app = getApp();
+    if (!this._lastLoadTime || this._lastLoadTime < (app.globalData.dbUpdateTime || 0)) {
+      this.loadAll();
+    }
   },
 
   async loadAll() {
+    this._lastLoadTime = Date.now();
     this.setData({ loading: true });
     try {
       const records = await api.fetchAllRecords();

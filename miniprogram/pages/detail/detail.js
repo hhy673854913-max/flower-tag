@@ -94,6 +94,7 @@ Page({
 
       const extraFiles = (r.extraFiles || []).concat(newExtras);
       await api.updateRecordExtras(this.id, extraFiles);
+      getApp().globalData.dbUpdateTime = Date.now();
       
       wx.hideLoading();
       wx.showToast({ title: '添加成功' });
@@ -201,6 +202,7 @@ Page({
       };
       await api.updateRecordTags(this.id, tags);
       api.bumpTagUsage(tags);
+      getApp().globalData.dbUpdateTime = Date.now();
       this.setData({ editing: false });
       wx.showToast({ title: '已保存', icon: 'success' });
     } catch (e) {
@@ -224,6 +226,7 @@ Page({
             filesToDelete.push(f.fileID, f.thumbFileID);
           });
           await api.deleteCloudFiles(filesToDelete.filter(Boolean));
+          getApp().globalData.dbUpdateTime = Date.now();
           wx.showToast({ title: '已删除', icon: 'success' });
           setTimeout(() => wx.navigateBack(), 500);
         } catch (e) {

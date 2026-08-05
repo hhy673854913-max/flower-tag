@@ -17,7 +17,9 @@ App({
     // 微信云开发环境 ID，部署时替换为你自己的环境 ID
     envId: 'florist-prod-d4gtxxh7s9a071ff0',
     // 上传流程中待确认的分析结果（上传页 → 确认页 传递）
-    pendingList: []
+    pendingList: [],
+    // 记录数据库最后更新时间，用于优化 Tab 页面按需刷新
+    dbUpdateTime: Date.now()
   },
 
   onLaunch() {

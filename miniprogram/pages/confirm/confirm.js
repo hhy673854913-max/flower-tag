@@ -215,7 +215,20 @@ Page({
   },
 
   finish() {
+    // 找出所有被跳过（即未保存入库）的图片资源，进行清理释放
+    const filesToDelete = [];
+    this.data.items.forEach(it => {
+      if (it.skipped && !it.saved) {
+        if (it.fileID) filesToDelete.push(it.fileID);
+        if (it.thumbFileID) filesToDelete.push(it.thumbFileID);
+      }
+    });
+    if (filesToDelete.length > 0) {
+      api.deleteCloudFiles(filesToDelete).catch(console.error);
+    }
+    
     getApp().globalData.pendingList = [];
+    getApp().globalData.dbUpdateTime = Date.now();
     wx.showToast({ title: '已入库', icon: 'success' });
     setTimeout(() => wx.switchTab({ url: '/pages/index/index' }), 600);
   }

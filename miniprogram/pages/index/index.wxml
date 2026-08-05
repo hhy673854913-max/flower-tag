@@ -1,4 +1,4 @@
-<view class="page">
+<view class="page page-tab">
   <view class="header" wx:if="{{list.length}}">
     <text class="title">我的作品</text>
     <text class="count">已加载 {{list.length}} / 共 {{total}} 条记录</text>

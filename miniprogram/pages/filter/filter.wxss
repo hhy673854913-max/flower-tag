@@ -47,3 +47,9 @@
   font-weight: 400;
   font-size: 24rpx;
 }
+
+.page-filter {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}

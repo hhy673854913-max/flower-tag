@@ -11,12 +11,17 @@ Page({
     noMore: false,
     total: 0 // 记录总数（云端 count），与 list.length（已加载数）配合展示
   },
+  
+  _lastLoadTime: 0,
 
   onShow() {
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ selected: 0 });
     }
-    this.reload();
+    const app = getApp();
+    if (!this._lastLoadTime || this._lastLoadTime < (app.globalData.dbUpdateTime || 0)) {
+      this.reload();
+    }
   },
 
   onPullDownRefresh() {
@@ -33,6 +38,7 @@ Page({
   },
 
   async reload() {
+    this._lastLoadTime = Date.now();
     this.setData({ list: [], noMore: false });
     // 先取总数，再加载第一页；总数失败不阻塞列表加载
     try {

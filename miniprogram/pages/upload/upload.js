@@ -134,6 +134,19 @@ Page({
 
   clearList() {
     if (this.data.running) return;
+    
+    // 清理未保存的云端图片资源
+    const filesToDelete = [];
+    this.data.items.forEach(item => {
+      if (item.fileID) filesToDelete.push(item.fileID);
+      if (item.thumbFileID) filesToDelete.push(item.thumbFileID);
+    });
+    
+    if (filesToDelete.length > 0) {
+      // 异步清理，不阻塞用户操作
+      api.deleteCloudFiles(filesToDelete).catch(console.error);
+    }
+    
     this.setData({ items: [], doneCount: 0, failCount: 0 });
   }
 });

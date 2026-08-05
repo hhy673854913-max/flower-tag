@@ -1,4 +1,4 @@
-<view class="page">
+<view class="page page-tab">
   <view class="tip-card">
     <view class="tip-title">{{lossless ? '当前为无损模式' : '当前为省流模式'}}</view>
     <view class="tip-text" wx:if="{{lossless}}">原图将不经过任何压缩直接存入你的云端空间；AI 分析只使用临时压缩副本，分析后即删除。</view>

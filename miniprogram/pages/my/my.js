@@ -8,6 +8,8 @@ Page({
     topFlower: '-',
     lossless: true
   },
+  
+  _lastLoadTime: 0,
 
   onShow() {
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
@@ -15,10 +17,15 @@ Page({
     }
     const v = wx.getStorageSync('upload_lossless');
     this.setData({ lossless: v === '' ? true : !!v });
-    this.loadStats();
+    
+    const app = getApp();
+    if (!this._lastLoadTime || this._lastLoadTime < (app.globalData.dbUpdateTime || 0)) {
+      this.loadStats();
+    }
   },
 
   async loadStats() {
+    this._lastLoadTime = Date.now();
     try {
       const records = await api.fetchAllRecords();
       const color = {}, style = {}, flower = {};
@@ -72,6 +79,7 @@ Page({
             (r.extraFiles || []).forEach(f => filesToDelete.push(f.fileID, f.thumbFileID));
           }
           await api.deleteCloudFiles(filesToDelete.filter(Boolean));
+          getApp().globalData.dbUpdateTime = Date.now();
           wx.hideLoading();
           wx.showToast({ title: '已清空', icon: 'success' });
           this.loadStats();

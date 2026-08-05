@@ -9,7 +9,12 @@ page {
 .page {
   min-height: 100vh;
   box-sizing: border-box;
-  padding: 24rpx;
+  padding: 32rpx;
+}
+
+/* 带有底部自定义 TabBar 的页面，留出底部安全距离避免被遮挡 */
+.page-tab {
+  padding-bottom: calc(140rpx + env(safe-area-inset-bottom)) !important;
 }
 
 /* 主按钮 */
