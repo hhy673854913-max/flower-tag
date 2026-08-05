@@ -5,6 +5,8 @@ Page({
   data: {
     record: null,
     url: '',
+    extraUrls: [], // 附加图临时链接
+    currentSwiperIdx: 0,
     editing: false,
     dimView: [],   // 各维度选项 + 选中态（WXML 不支持 indexOf 等方法调用，选中态必须在 JS 预计算）
     roles: FLOWER_ROLES,
@@ -22,15 +24,85 @@ Page({
       const record = await api.getRecord(this.id);
       // 详情页默认展示缩略图（旧记录没有 thumbFileID，回退原图）；原图点"查看原图"时才加载
       const displayID = record.thumbFileID || record.fileID;
-      const map = await api.getTempUrls([displayID]);
+      
+      const extraIDs = (record.extraFiles || []).map(f => f.thumbFileID || f.fileID);
+      const allIDs = [displayID].concat(extraIDs);
+      const map = await api.getTempUrls(allIDs);
+      
       this.setData({
         record,
         url: map[displayID] || '',
+        extraUrls: extraIDs.map(id => map[id] || ''),
         dimView: this.buildDimView(record)
       });
     } catch (e) {
       wx.showToast({ title: '记录不存在或已删除', icon: 'none' });
       setTimeout(() => wx.navigateBack(), 800);
+    }
+  },
+
+  onSwiperChange(e) {
+    this.setData({ currentSwiperIdx: e.detail.current });
+  },
+
+  async addExtraImages() {
+    if (this.data.editing) return;
+    const r = this.data.record;
+    const remain = 8 - (r.extraFiles || []).length;
+    if (remain <= 0) return;
+
+    try {
+      const lossless = wx.getStorageSync('upload_lossless') !== false;
+      const res = await wx.chooseMedia({
+        count: remain,
+        mediaType: ['image'],
+        sizeType: lossless ? ['original'] : ['compressed']
+      });
+
+      wx.showLoading({ title: '处理中…', mask: true });
+      const newExtras = [];
+
+      for (let f of res.tempFiles) {
+        // 1. 上传原图
+        const fileID = await api.uploadWorkImage(f.tempFilePath);
+        // 2. 上传缩略图
+        let thumbPath = f.tempFilePath;
+        try {
+          // 增大压缩强度，确保绝大多数图片缩略图 <= 1MB，以满足 imgSecCheck 接口限制
+          const c = await wx.compressImage({ src: f.tempFilePath, quality: 20 });
+          thumbPath = c.tempFilePath;
+        } catch (e) { }
+        const thumbFileID = await api.uploadThumbImage(thumbPath);
+
+        // 3. 安全检测
+        const secRes = await api.imgSecCheck(thumbFileID);
+        if (!secRes.ok) {
+          console.error('安全检测失败详情:', secRes);
+          if (secRes.isViolated) {
+            await api.deleteCloudFiles([fileID, thumbFileID]);
+            wx.hideLoading();
+            wx.showModal({ title: '安全提示', content: '图片包含违规内容，已拦截', showCancel: false });
+            return; // 发现违规，终止后续上传
+          } else {
+            // 非违规类错误（如 invalid media size 图片过大），仅警告，放行
+            console.warn('安全检测异常，放行:', secRes.error);
+          }
+        }
+
+        newExtras.push({ fileID, thumbFileID });
+      }
+
+      const extraFiles = (r.extraFiles || []).concat(newExtras);
+      await api.updateRecordExtras(this.id, extraFiles);
+      
+      wx.hideLoading();
+      wx.showToast({ title: '添加成功' });
+      this.loadRecord(); // 重新加载
+    } catch (err) {
+      wx.hideLoading();
+      if (err && err.errMsg && err.errMsg.indexOf('cancel') < 0) {
+        wx.showToast({ title: '添加失败', icon: 'none' });
+      }
     }
   },
 
@@ -146,7 +218,12 @@ Page({
         if (!res.confirm) return;
         try {
           await api.removeRecord(this.id);
-          await api.deleteCloudFiles([this.data.record.fileID, this.data.record.thumbFileID].filter(Boolean));
+          const r = this.data.record;
+          const filesToDelete = [r.fileID, r.thumbFileID];
+          (r.extraFiles || []).forEach(f => {
+            filesToDelete.push(f.fileID, f.thumbFileID);
+          });
+          await api.deleteCloudFiles(filesToDelete.filter(Boolean));
           wx.showToast({ title: '已删除', icon: 'success' });
           setTimeout(() => wx.navigateBack(), 500);
         } catch (e) {
@@ -157,24 +234,42 @@ Page({
   },
 
   /** 查看原图：按需换取原图临时链接后全屏预览（原图体积大，仅此处加载） */
-  async previewOriginal() {
+  async previewOriginal(e) {
     if (this.data.loadingOriginal) return;
     const r = this.data.record;
     if (!r) return;
+    
+    let targetIdx = 0;
+    if (e && e.currentTarget && e.currentTarget.dataset.idx !== undefined) {
+      targetIdx = Number(e.currentTarget.dataset.idx);
+    } else {
+      targetIdx = this.data.currentSwiperIdx || 0;
+    }
+
     this.setData({ loadingOriginal: true });
     wx.showLoading({ title: '加载原图…', mask: true });
     try {
-      const map = await api.getTempUrls([r.fileID]);
-      const url = map[r.fileID];
-      if (url) {
-        await wx.previewImage({ urls: [url] });
+      const allOriginalIDs = [r.fileID].concat((r.extraFiles || []).map(f => f.fileID));
+      const map = await api.getTempUrls(allOriginalIDs);
+      const urls = allOriginalIDs.map(id => map[id]).filter(Boolean);
+      
+      if (urls.length > 0 && urls[targetIdx]) {
+        // 提示用户如何返回
+        wx.showToast({ title: '轻触图片任意位置返回', icon: 'none', duration: 2000 });
+        
+        setTimeout(async () => {
+          await wx.previewImage({ urls, current: urls[targetIdx] });
+          this.setData({ loadingOriginal: false });
+        }, 300); //
       } else {
+        wx.hideLoading();
         wx.showToast({ title: '原图加载失败', icon: 'none' });
+        this.setData({ loadingOriginal: false });
       }
     } catch (e) {
+      wx.hideLoading();
       wx.showToast({ title: '原图加载失败', icon: 'none' });
+      this.setData({ loadingOriginal: false });
     }
-    wx.hideLoading();
-    this.setData({ loadingOriginal: false });
   }
 });

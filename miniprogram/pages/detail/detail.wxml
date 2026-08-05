@@ -1,6 +1,19 @@
 <view class="page" wx:if="{{record}}">
-  <image class="hero" src="{{url}}" mode="aspectFit" bindtap="previewOriginal" />
-  <view class="btn-ghost orig-btn" bindtap="previewOriginal">{{loadingOriginal ? '原图加载中…' : '查看原图'}}</view>
+  <swiper class="hero-swiper" indicator-dots="{{true}}" circular="{{false}}" autoplay="{{false}}" bindchange="onSwiperChange">
+    <!-- 主图 -->
+    <swiper-item>
+      <image class="hero" src="{{url}}" mode="aspectFit" bindtap="previewOriginal" data-idx="0" />
+    </swiper-item>
+    <!-- 附加图 -->
+    <swiper-item wx:for="{{extraUrls}}" wx:key="index">
+      <image class="hero" src="{{item}}" mode="aspectFit" bindtap="previewOriginal" data-idx="{{index + 1}}" />
+    </swiper-item>
+  </swiper>
+  
+  <view class="hero-actions">
+    <view class="btn-ghost orig-btn" bindtap="previewOriginal" data-idx="{{currentSwiperIdx || 0}}">{{loadingOriginal ? '加载中…' : '查看原图'}}</view>
+    <view class="btn-ghost orig-btn" bindtap="addExtraImages" wx:if="{{!editing && record && (!record.extraFiles || record.extraFiles.length < 8)}}">添加附加图</view>
+  </view>
 
   <view class="edit-tip" wx:if="{{editing}}">编辑模式：点选修改标签，花材长按可调整角色</view>
 

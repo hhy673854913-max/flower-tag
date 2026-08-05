@@ -22,7 +22,7 @@
         <view class="item-status s-{{item.status}}">
           <block wx:if="{{item.status === 'pending'}}">等待处理…</block>
           <block wx:elif="{{item.status === 'uploading'}}">原图上传中…</block>
-          <block wx:elif="{{item.status === 'analyzing'}}">Kimi 分析中…</block>
+          <block wx:elif="{{item.status === 'analyzing' }}">AI模型分析中…</block>
           <block wx:elif="{{item.status === 'done'}}">✓ 打标完成</block>
           <block wx:else>✗ {{item.error}}</block>
         </view>

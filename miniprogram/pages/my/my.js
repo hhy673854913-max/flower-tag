@@ -62,10 +62,13 @@ Page({
         wx.showLoading({ title: '清空中…' });
         try {
           const records = await api.fetchAllRecords();
+          const filesToDelete = [];
           for (const r of records) {
             await api.removeRecord(r._id);
+            filesToDelete.push(r.fileID, r.thumbFileID);
+            (r.extraFiles || []).forEach(f => filesToDelete.push(f.fileID, f.thumbFileID));
           }
-          await api.deleteCloudFiles(records.map(r => r.fileID));
+          await api.deleteCloudFiles(filesToDelete.filter(Boolean));
           wx.hideLoading();
           wx.showToast({ title: '已清空', icon: 'success' });
           this.loadStats();

@@ -26,5 +26,6 @@
     ]
   },
   "sitemapLocation": "sitemap.json",
-  "lazyCodeLoading": "requiredComponents"
+  "lazyCodeLoading": "requiredComponents",
+  "usingComponents": {}
 }

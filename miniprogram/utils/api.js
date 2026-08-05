@@ -85,6 +85,23 @@ async function analyzeImage(fileID) {
   }
 }
 
+/**
+ * 校验图片是否安全违规
+ * @param {string} fileID 
+ * @returns {Promise<{ok:boolean, error?:string, isViolated?:boolean}>}
+ */
+async function imgSecCheck(fileID) {
+  try {
+    const res = await wx.cloud.callFunction({
+      name: 'imgSecCheck',
+      data: { fileID }
+    });
+    return res.result;
+  } catch (e) {
+    return { ok: false, error: (e && e.errMsg) || '安全检测调用失败' };
+  }
+}
+
 /* ---------- records 记录 ---------- */
 
 async function addRecord(rec) {
@@ -101,6 +118,10 @@ async function getRecord(id) {
 
 async function updateRecordTags(id, tags) {
   await db().collection('records').doc(id).update({ data: tags });
+}
+
+async function updateRecordExtras(id, extraFiles) {
+  await db().collection('records').doc(id).update({ data: { extraFiles } });
 }
 
 async function removeRecord(id) {
@@ -183,9 +204,11 @@ module.exports = {
   deleteCloudFiles,
   getTempUrls,
   analyzeImage,
+  imgSecCheck,
   addRecord,
   getRecord,
   updateRecordTags,
+  updateRecordExtras,
   removeRecord,
   listRecords,
   countRecords,

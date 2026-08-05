@@ -1,15 +1,43 @@
 /**
  * 云函数 analyzeImage
  * 入参：{ fileID } —— thumbs/ 目录下的压缩缩略图（长期保留，本函数只读不删）
- * 行为：调 Kimi（Moonshot）视觉多模态模型生成六维标签
+ * 行为：调视觉多模态模型生成六维标签（Qwen-VL / Kimi-VL 双模型适配）
  * 环境变量：
- *   KIMI_API_KEY  必填，Moonshot 开放平台 API Key
- *   KIMI_MODEL    可选，默认 moonshot-v1-32k-vision-preview
+ *   AI_PROVIDER       可选，模型提供方：qwen（默认）/ kimi
+ *   DASHSCOPE_API_KEY qwen 模式必填，阿里云百炼 API Key
+ *   QWEN_MODEL        可选，默认 qwen-vl-plus
+ *   KIMI_API_KEY      kimi 模式必填，Moonshot 开放平台 API Key
+ *   KIMI_MODEL        可选，默认 moonshot-v1-32k-vision-preview
  */
 const cloud = require('wx-server-sdk');
 const https = require('https');
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
+
+// 两个提供方都走 OpenAI 兼容的 /chat/completions 协议，请求体可复用
+const PROVIDERS = {
+  qwen: {
+    url: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
+    keyEnv: 'DASHSCOPE_API_KEY',
+    modelEnv: 'QWEN_MODEL',
+    defaultModel: 'qwen-vl-plus'
+  },
+  kimi: {
+    url: 'https://api.moonshot.cn/v1/chat/completions',
+    keyEnv: 'KIMI_API_KEY',
+    modelEnv: 'KIMI_MODEL',
+    defaultModel: 'moonshot-v1-32k-vision-preview'
+  }
+};
+
+function getProvider() {
+  const name = (process.env.AI_PROVIDER || 'qwen').trim().toLowerCase();
+  const p = PROVIDERS[name];
+  if (!p) {
+    throw new Error('AI_PROVIDER 配置无效：' + name + '（可选值：' + Object.keys(PROVIDERS).join(' / ') + '）');
+  }
+  return { name, url: p.url, apiKey: process.env[p.keyEnv], model: process.env[p.modelEnv] || p.defaultModel, keyEnv: p.keyEnv };
+}
 
 const COLORS = ['红', '粉', '橙', '黄', '绿', '紫', '蓝', '白', '香槟色', '复古色', '混色'];
 
@@ -149,20 +177,28 @@ function normalize(raw) {
 exports.main = async (event) => {
   const fileID = event && event.fileID;
   if (!fileID) return { ok: false, error: '缺少 fileID' };
-  const apiKey = process.env.KIMI_API_KEY;
-  if (!apiKey) return { ok: false, error: '云函数未配置 KIMI_API_KEY 环境变量' };
+
+  let provider;
+  try {
+    provider = getProvider();
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+  if (!provider.apiKey) {
+    return { ok: false, error: '云函数未配置 ' + provider.keyEnv + ' 环境变量（当前 AI_PROVIDER=' + provider.name + '）' };
+  }
 
   try {
     // 1. 下载分析副本并转 base64
     const file = await cloud.downloadFile({ fileID });
     const base64 = file.fileContent.toString('base64');
 
-    // 2. 调 Kimi 视觉模型
+    // 2. 调视觉模型（qwen-vl-plus 或 kimi vision，均为 OpenAI 兼容协议）
     const resp = await postJson(
-      'https://api.moonshot.cn/v1/chat/completions',
-      { Authorization: 'Bearer ' + apiKey },
+      provider.url,
+      { Authorization: 'Bearer ' + provider.apiKey },
       {
-        model: process.env.KIMI_MODEL || 'moonshot-v1-32k-vision-preview',
+        model: provider.model,
         temperature: 0.2,
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
@@ -177,7 +213,7 @@ exports.main = async (event) => {
       }
     );
 
-    if (resp.error) throw new Error(resp.error.message || 'Kimi 接口报错');
+    if (resp.error) throw new Error(resp.error.message || 'AI 接口报错（' + provider.name + '）');
     const content = resp.choices && resp.choices[0] && resp.choices[0].message
       ? resp.choices[0].message.content : '';
     const tags = normalize(extractJson(content));

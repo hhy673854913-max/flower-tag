@@ -1,12 +1,23 @@
-.hero {
+.hero-swiper {
   width: 100%;
   height: 560rpx;
   background: #e9efe9;
   border-radius: 16rpx;
+  overflow: hidden;
+}
+.hero {
+  width: 100%;
+  height: 100%;
+}
+.hero-actions {
+  display: flex;
+  justify-content: center;
+  gap: 24rpx;
+  margin-top: 16rpx;
 }
 /* 查看原图按钮：跟随全局 btn-ghost 样式，仅补充布局 */
 .orig-btn {
-  margin: 16rpx auto 0;
+  margin: 0;
   width: 220rpx;
   text-align: center;
   font-size: 26rpx;

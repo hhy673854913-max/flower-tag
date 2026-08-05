@@ -1,7 +1,7 @@
 {
   "name": "analyzeImage",
-  "version": "1.0.0",
-  "description": "调 Kimi 视觉模型生成花艺五维标签，并清理分析用临时图",
+  "version": "1.1.0",
+  "description": "调视觉多模态模型（Qwen-VL-Plus / Kimi-VL，由 AI_PROVIDER 环境变量切换，默认 qwen）生成花艺六维标签",
   "main": "index.js",
   "dependencies": {
     "wx-server-sdk": "~2.6.3"
