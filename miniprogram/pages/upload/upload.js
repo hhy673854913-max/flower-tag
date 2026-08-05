@@ -10,6 +10,9 @@ Page({
   },
 
   onShow() {
+    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+      this.getTabBar().setData({ selected: 2 });
+    }
     const v = wx.getStorageSync('upload_lossless');
     this.setData({ lossless: v === '' ? true : !!v });
   },
