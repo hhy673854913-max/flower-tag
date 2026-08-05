@@ -5,6 +5,30 @@
 const db = () => wx.cloud.database();
 const _ = () => wx.cloud.database().command;
 
+/** 小程序客户端数据库单次 get() / count() 的结果上限（云函数端是 100，注意区分） */
+const CLIENT_PAGE_LIMIT = 20;
+
+/**
+ * 通用分批取数 helper：客户端单次查询最多返回 20 条，循环 skip 直到取完。
+ * @param {() => object} buildQuery 返回未加分页的 Query，例如 () => db().collection('records').orderBy('createdAt', 'desc')
+ * @param {number} maxRecords 安全上限，防止异常数据导致死循环
+ */
+async function queryAll(buildQuery, maxRecords = 5000) {
+  const all = [];
+  let skip = 0;
+  for (;;) {
+    const res = await buildQuery()
+      .skip(skip)
+      .limit(CLIENT_PAGE_LIMIT)
+      .get();
+    all.push(...res.data);
+    if (res.data.length < CLIENT_PAGE_LIMIT) break;
+    skip += CLIENT_PAGE_LIMIT;
+    if (skip >= maxRecords) break;
+  }
+  return all;
+}
+
 /* ---------- 云存储 ---------- */
 
 /** 上传原图到 works/（无损直存），返回 fileID */
@@ -83,6 +107,18 @@ async function removeRecord(id) {
   await db().collection('records').doc(id).remove();
 }
 
+/**
+ * 取本人记录总数（用于列表页展示"已加载 X / 共 Y 条"）
+ * 注意：客户端 collection.count() 同样受 20 条上限截断，不能直接用；
+ * 复用分批取数，只取 _id 字段减小传输量
+ */
+async function countRecords() {
+  const all = await queryAll(() =>
+    db().collection('records').orderBy('createdAt', 'desc').field({ _id: true })
+  );
+  return all.length;
+}
+
 /** 分页取本人记录（时间倒序） */
 async function listRecords(skip, limit) {
   const res = await db().collection('records')
@@ -95,21 +131,7 @@ async function listRecords(skip, limit) {
 
 /** 取本人全部记录（客户端聚合用；个人规模足够，超大库请改云函数聚合） */
 async function fetchAllRecords() {
-  const all = [];
-  let skip = 0;
-  const batch = 20;
-  for (;;) {
-    const res = await db().collection('records')
-      .orderBy('createdAt', 'desc')
-      .skip(skip)
-      .limit(batch)
-      .get();
-    all.push(...res.data);
-    if (res.data.length < batch) break;
-    skip += batch;
-    if (skip > 5000) break; // 安全上限
-  }
-  return all;
+  return queryAll(() => db().collection('records').orderBy('createdAt', 'desc'));
 }
 
 /* ---------- tags 词库与计数 ---------- */
@@ -138,16 +160,7 @@ async function bumpTagUsage(tags) {
 }
 
 async function listTags() {
-  const all = [];
-  let skip = 0;
-  for (;;) {
-    const res = await db().collection('tags').skip(skip).limit(20).get();
-    all.push(...res.data);
-    if (res.data.length < 20) break;
-    skip += 20;
-    if (skip > 2000) break;
-  }
-  return all;
+  return queryAll(() => db().collection('tags'), 2000);
 }
 
 async function addFlowerTag(name) {
@@ -175,6 +188,7 @@ module.exports = {
   updateRecordTags,
   removeRecord,
   listRecords,
+  countRecords,
   fetchAllRecords,
   bumpTagUsage,
   listTags,

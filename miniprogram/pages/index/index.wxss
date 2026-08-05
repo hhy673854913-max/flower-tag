@@ -18,3 +18,8 @@
   font-size: 24rpx;
   padding: 32rpx 0;
 }
+.foot.loadmore {
+  color: #2e7d4f;
+  font-weight: 600;
+  padding: 24rpx 0 40rpx;
+}
