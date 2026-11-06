@@ -15,6 +15,7 @@ Page({
   onLoad() {
     const list = (getApp().globalData.pendingList || []).map(x => ({
       fileID: x.fileID,
+      thumbFileID: x.thumbFileID,
       tempPath: x.tempPath,
       tags: normalizeTags(x.tags),
       saved: false,
@@ -169,12 +170,13 @@ Page({
     const { items, current, cur } = this.data;
     items[current].tags = cur.tags;
     this.setData({ items });
-    await this.saveOne(current);
+    const saved = await this.saveOne(current);
     this.setData({ saving: false });
-    this.jumpNext();
+    if (saved) this.jumpNext();
   },
 
   skipCurrent() {
+    if (this.data.saving) return;
     const { items, current } = this.data;
     if (!items[current].saved && !items[current].skipped) {
       items[current].skipped = true;
@@ -206,12 +208,13 @@ Page({
     items[current].tags = cur.tags;
     this.setData({ items });
     wx.showLoading({ title: '保存中…' });
+    let allSaved = true;
     for (let i = 0; i < items.length; i++) {
-      await this.saveOne(i);
+      if (!await this.saveOne(i)) allSaved = false;
     }
     wx.hideLoading();
     this.setData({ saving: false });
-    this.finish();
+    if (allSaved) this.finish();
   },
 
   finish() {

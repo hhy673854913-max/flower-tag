@@ -1,29 +1,31 @@
-.tip-card {
-  background: #eef6f0;
-  border: 2rpx solid #cfe5d6;
-  border-radius: 16rpx;
-  padding: 24rpx 28rpx;
-}
-.tip-title {
+.page-heading { padding: 20rpx 4rpx 42rpx; }
+.eyebrow, .access-index {
+  color: #648170;
+  font-size: 20rpx;
   font-weight: 600;
-  color: #2e7d4f;
-  margin-bottom: 8rpx;
+  letter-spacing: 3rpx;
 }
-.tip-text {
-  font-size: 24rpx;
-  color: #5a6b5f;
-  line-height: 1.6;
+.page-title { color: #24362c; font-size: 48rpx; font-weight: 600; margin-top: 12rpx; }
+.page-intro { color: #7b887d; font-size: 26rpx; margin-top: 10rpx; }
+.access-panel, .upload-card {
+  background: #fffdf9;
+  border: 1rpx solid #e6e9df;
+  border-radius: 24rpx;
+  padding: 38rpx 34rpx;
 }
-
-.pick-row {
-  margin-top: 48rpx;
-}
-.pick-btn {
-  margin-bottom: 28rpx;
-}
+.access-title, .upload-title { color: #24362c; font-size: 36rpx; font-weight: 600; margin-top: 20rpx; }
+.access-copy, .upload-desc { color: #69776c; font-size: 26rpx; line-height: 1.7; margin-top: 16rpx; }
+.open-action { display: block; margin-top: 42rpx; }
+.text-action { color: #377454; font-size: 28rpx; margin-top: 30rpx; }
+.pick-row { margin-top: 46rpx; }
+.pick-btn { margin-bottom: 20rpx; }
+.pick-btn:last-child { margin-bottom: 0; }
+.tip-card { margin-top: 26rpx; padding: 16rpx 6rpx; }
+.tip-title { color: #4a6953; font-weight: 600; font-size: 24rpx; }
+.tip-text { color: #8a978b; font-size: 23rpx; line-height: 1.6; margin-top: 8rpx; }
 
 .progress-summary {
-  margin: 24rpx 0;
+  margin: 12rpx 0 28rpx;
   color: #6b736b;
   font-size: 26rpx;
 }
@@ -34,16 +36,17 @@
 
 .item {
   display: flex;
-  background: #fff;
-  border-radius: 16rpx;
-  padding: 20rpx;
+  background: #fffdf9;
+  border: 1rpx solid #e6e9df;
+  border-radius: 18rpx;
+  padding: 22rpx;
   margin-bottom: 20rpx;
   align-items: center;
 }
 .item-thumb {
   width: 140rpx;
   height: 140rpx;
-  border-radius: 12rpx;
+  border-radius: 10rpx;
   background: #e9efe9;
   flex-shrink: 0;
 }

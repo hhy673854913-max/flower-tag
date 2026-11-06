@@ -1,8 +1,8 @@
 <view class="page page-filter page-tab">
   <view wx:if="{{!records.length && !loading}}" class="empty">
-    <view class="empty-icon">🔍</view>
+    <view class="empty-icon">·</view>
     <view>还没有可筛选的记录</view>
-    <view>先去「上传」整理一些作品吧</view>
+    <view>上传作品后，就能按标签查找</view>
   </view>
 
   <block wx:if="{{records.length}}">

@@ -1,8 +1,47 @@
 <view class="page page-tab">
-  <view class="stat-card">
+  <view class="page-heading">
+    <view class="eyebrow">作品档案</view>
+    <view class="page-title">我的花艺空间</view>
+    <view class="page-intro">查看作品、标签与上传设置</view>
+  </view>
+
+  <view class="access-card" wx:if="{{accessLoading}}">
+    <view class="card-label">账户状态</view>
+    <view class="access-copy">正在读取你的空间…</view>
+  </view>
+
+  <view class="access-card" wx:elif="{{accessError}}">
+    <view class="card-label">账户状态</view>
+    <view class="access-title">暂时无法确认账号</view>
+    <view class="access-copy">{{accessError}}</view>
+    <view class="retry-action" bindtap="loadAccess">重新检查</view>
+  </view>
+
+  <view class="access-card" wx:elif="{{!activated}}">
+    <view class="card-label">开始使用</view>
+    <view class="access-title">用校验码开启作品空间</view>
+    <view class="access-copy">输入管理员提供的校验码，即可上传作品、整理标签。</view>
+    <view class="access-copy" wx:if="{{cleanupPending}}">旧作品正在清理，完成后可重新输入校验码成为花艺师。</view>
+    <input class="code-input" value="{{nameInput}}" maxlength="30" placeholder="花艺师名字 / 工作室名称"
+      placeholder-class="input-placeholder" bindinput="onNameInput" />
+    <input class="code-input" value="{{code}}" password="{{true}}" maxlength="64"
+      placeholder="请输入校验码" placeholder-class="input-placeholder" bindinput="onCodeInput" />
+    <view class="btn-primary access-action {{redeeming ? 'disabled' : ''}}" bindtap="redeemCode">
+      {{redeeming ? '正在校验…' : '开通我的空间'}}
+    </view>
+    <view class="access-note">开通记录会保留名字、校验码和时间，供管理员管理。</view>
+  </view>
+
+  <view class="stat-card" wx:else>
+    <view class="stat-top">
+      <view>
+        <view class="card-label">我的作品档案</view>
+        <view class="stat-heading">已收藏的花艺时刻</view>
+      </view>
+      <view class="access-badge">{{isAdmin ? '管理员' : '花艺师'}}</view>
+    </view>
     <view class="stat-main">
-      <view class="stat-num">{{total}}</view>
-      <view class="stat-label">作品记录</view>
+      <text class="stat-num">{{total}}</text><text class="stat-unit">件作品</text>
     </view>
     <view class="stat-grid">
       <view class="stat-item"><view class="v">{{topColor}}</view><view class="k">常用颜色</view></view>
@@ -11,22 +50,59 @@
     </view>
   </view>
 
-  <view class="menu">
+  <view class="section-caption" wx:if="{{activated}}">空间设置</view>
+  <view class="access-card profile-card" wx:if="{{activated}}">
+    <view class="card-label">我的名字</view>
+    <view class="access-copy">{{isAdmin ? '管理员免校验码，可直接上传与分享作品。' : '花艺师身份已保存，无需重复输入校验码。'}}</view>
+    <input class="code-input" value="{{nameInput}}" maxlength="30" placeholder="花艺师名字 / 工作室名称" bindinput="onNameInput" />
+    <view class="retry-action" bindtap="saveName">{{savingName ? '保存中…' : '保存名字'}}</view>
+  </view>
+  <view class="menu" wx:if="{{activated}}">
     <view class="menu-item" bindtap="goTags">
-      <text>标签管理</text><text class="arrow">›</text>
+      <view class="menu-left"><view>标签管理</view><view class="menu-sub">整理常用花材与标签</view></view>
+      <text class="arrow">›</text>
     </view>
     <view class="menu-item">
       <view class="menu-left">
         <view>原图无损上传</view>
-        <view class="menu-sub">关闭后上传前将高画质压缩（有损）</view>
+        <view class="menu-sub">关闭后使用省流压缩模式</view>
       </view>
       <switch checked="{{lossless}}" color="#2e7d4f" bindchange="toggleLossless" />
     </view>
-    <view class="menu-item" bindtap="about">
-      <text>关于与隐私说明</text><text class="arrow">›</text>
-    </view>
     <view class="menu-item danger" bindtap="clearAll">
       <text>清空全部数据</text><text class="arrow">›</text>
+    </view>
+  </view>
+
+  <view wx:if="{{isAdmin}}" class="admin-section">
+    <view class="section-caption">管理视图</view>
+    <view class="admin-card">
+      <view class="admin-header">
+        <view><view class="card-label">账号管理</view><view class="admin-title">花艺师列表</view></view>
+        <view class="refresh-link" bindtap="refreshAccessRecords">刷新</view>
+      </view>
+      <view class="admin-empty" wx:if="{{recordsError}}">{{recordsError}}</view>
+      <view class="admin-empty" wx:if="{{recordsLoading}}">正在加载列表…</view>
+      <view class="admin-empty" wx:if="{{!recordsLoading && !accessRecords.length && !recordsError}}">暂无花艺师</view>
+      <view class="admin-empty" wx:if="{{revokingId}}">{{revokeProgress}}</view>
+      <block>
+        <view class="admin-row" wx:for="{{accessRecords}}" wx:key="id">
+          <view class="admin-info">
+            <view class="admin-id">{{item.name}}</view>
+            <view class="admin-code" selectable>校验码：{{item.code}}</view>
+            <view class="admin-date">成为花艺师：{{item.date}}</view>
+            <view class="admin-date" wx:if="{{item.cleanupPending}}">权限已撤销，作品待清理</view>
+          </view>
+          <button class="revoke-button" disabled="{{!!revokingId}}" data-id="{{item.id}}" bindtap="revokeFlorist">{{item.cleanupPending ? '继续清理' : '撤销权限'}}</button>
+        </view>
+      </block>
+      <view class="retry-action" wx:if="{{recordsHasMore}}" bindtap="loadMoreFlorists">加载更多花艺师</view>
+    </view>
+  </view>
+
+  <view class="menu secondary-menu">
+    <view class="menu-item" bindtap="about">
+      <text>关于与隐私说明</text><text class="arrow">›</text>
     </view>
   </view>
 </view>

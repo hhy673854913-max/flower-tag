@@ -178,6 +178,19 @@ exports.main = async (event) => {
   const fileID = event && event.fileID;
   if (!fileID) return { ok: false, error: '缺少 fileID' };
 
+  try {
+    const openid = cloud.getWXContext().OPENID;
+    if (!openid) return { ok: false, error: '无法识别当前微信用户' };
+    const status = await cloud.callFunction({ name: 'accessGate', data: { action: 'status' } });
+    if (!status.result || !status.result.canUpload) return { ok: false, error: '请先在「我的」输入校验码成为花艺师' };
+    if (typeof fileID !== 'string' || !fileID.includes('/' + status.result.filePrefix)) {
+      return { ok: false, error: '图片不属于当前账号' };
+    }
+  } catch (error) {
+    console.error('access check:', error);
+    return { ok: false, error: '账号校验失败，请稍后重试' };
+  }
+
   let provider;
   try {
     provider = getProvider();

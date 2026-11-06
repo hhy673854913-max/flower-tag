@@ -6,7 +6,25 @@ Page({
     topColor: '-',
     topStyle: '-',
     topFlower: '-',
-    lossless: true
+    lossless: true,
+    accessLoading: true,
+    accessError: '',
+    activated: false,
+    isAdmin: false,
+    role: 'other',
+    name: '',
+    nameInput: '',
+    savingName: false,
+    cleanupPending: false,
+    code: '',
+    redeeming: false,
+    accessRecords: [],
+    recordsLoading: false,
+    recordsError: '',
+    recordsHasMore: false,
+    recordsSkip: 0,
+    revokingId: '',
+    revokeProgress: ''
   },
   
   _lastLoadTime: 0,
@@ -18,6 +36,145 @@ Page({
     const v = wx.getStorageSync('upload_lossless');
     this.setData({ lossless: v === '' ? true : !!v });
     
+    this.loadAccess();
+  },
+
+  async loadAccess() {
+    this.setData({ accessLoading: true, accessError: '' });
+    try {
+      const status = await api.getAccessStatus();
+      this.setData({
+        activated: status.activated,
+        isAdmin: status.isAdmin,
+        role: status.role,
+        name: status.name,
+        nameInput: status.name,
+        cleanupPending: status.cleanupPending,
+        accessLoading: false
+      });
+      if (status.activated) {
+        this.loadStatsIfNeeded();
+      }
+      if (status.isAdmin) this.loadAccessRecords();
+    } catch (error) {
+      this.setData({
+        accessLoading: false,
+        accessError: error.message || '暂时无法确认账号',
+        activated: false,
+        isAdmin: false
+      });
+    }
+  },
+
+  onCodeInput(e) {
+    this.setData({ code: e.detail.value });
+  },
+
+  onNameInput(e) {
+    this.setData({ nameInput: e.detail.value });
+  },
+
+  async saveName() {
+    if (this.data.savingName) return;
+    this.setData({ savingName: true });
+    try {
+      const result = await api.updateAccessName(this.data.nameInput);
+      this.setData({ name: result.name });
+      wx.showToast({ title: '名字已保存', icon: 'success' });
+    } catch (error) {
+      wx.showToast({ title: error.message, icon: 'none' });
+    } finally { this.setData({ savingName: false }); }
+  },
+
+  async redeemCode() {
+    if (this.data.redeeming || this.data.accessError || this.data.accessLoading) return;
+    if (this.data.cleanupPending) {
+      wx.showToast({ title: '旧作品清理完成后才可重新开通', icon: 'none' });
+      return;
+    }
+    const code = this.data.code.trim();
+    if (!code) {
+      wx.showToast({ title: '请输入校验码', icon: 'none' });
+      return;
+    }
+    this.setData({ redeeming: true });
+    try {
+      const status = await api.redeemAccessCode(code, this.data.nameInput);
+      this.setData({ code: '', activated: status.activated, isAdmin: status.isAdmin,
+        role: status.role, name: status.name, nameInput: status.name });
+      wx.showToast({ title: '已开通，可以开始整理作品', icon: 'none' });
+      this.loadStats();
+      if (status.isAdmin) this.loadAccessRecords();
+    } catch (error) {
+      wx.showToast({ title: error.message || '校验失败', icon: 'none' });
+    } finally {
+      this.setData({ redeeming: false });
+    }
+  },
+
+  async loadAccessRecords(append = false) {
+    if (this.data.recordsLoading) return;
+    this.setData({ recordsLoading: true, recordsError: '' });
+    try {
+      const result = await api.listAccessRecords(append ? this.data.recordsSkip : 0);
+      const rows = result.records.map(item => Object.assign({}, item, {
+        date: item.activatedAt ? new Date(item.activatedAt).toLocaleString() : '时间未知'
+      }));
+      this.setData({
+        accessRecords: append ? this.data.accessRecords.concat(rows) : rows,
+        recordsHasMore: result.hasMore,
+        recordsSkip: result.nextSkip
+      });
+    } catch (error) {
+      this.setData({ recordsError: error.message || '列表加载失败' });
+    } finally {
+      this.setData({ recordsLoading: false });
+    }
+  },
+
+  refreshAccessRecords() {
+    if (this.data.isAdmin && !this.data.revokingId) this.loadAccessRecords();
+  },
+
+  loadMoreFlorists() {
+    if (this.data.recordsHasMore && !this.data.revokingId) this.loadAccessRecords(true);
+  },
+
+  revokeFlorist(e) {
+    if (!this.data.isAdmin || this.data.revokingId) return;
+    const item = this.data.accessRecords.find(row => row.id === e.currentTarget.dataset.id);
+    if (!item) return;
+    wx.showModal({
+      title: item.cleanupPending ? '继续清理作品' : '撤销花艺师权限',
+      content: `将「${item.name}」降级为其他用户，并永久删除其全部作品、原图、缩略图、附加图与自定义标签。已有作品分享立即失效。确定继续吗？`,
+      confirmText: item.cleanupPending ? '继续清理' : '撤销并删除',
+      confirmColor: '#a36759',
+      success: res => { if (res.confirm) this.performRevoke(item); }
+    });
+  },
+
+  async performRevoke(item) {
+    this.setData({ revokingId: item.id, revokeProgress: '正在撤销权限并清理作品…' });
+    let deleted = 0;
+    try {
+      let result = item.cleanupPending ? await api.cleanupFlorist(item.id) : await api.revokeFlorist(item.id);
+      deleted += result.deleted || 0;
+      while (result.hasMore) {
+        this.setData({ revokeProgress: `已清理 ${deleted} 件作品，正在继续…` });
+        result = await api.cleanupFlorist(item.id);
+        deleted += result.deleted || 0;
+      }
+      getApp().globalData.dbUpdateTime = Date.now();
+      wx.showToast({ title: '权限已撤销，作品已清理', icon: 'none' });
+    } catch (error) {
+      wx.showModal({ title: '清理未完成', content: error.message + '。刷新列表后可继续清理，权限保持关闭。', showCancel: false });
+    } finally {
+      this.setData({ revokingId: '', revokeProgress: '' });
+      this.loadAccessRecords();
+    }
+  },
+
+  loadStatsIfNeeded() {
     const app = getApp();
     if (!this._lastLoadTime || this._lastLoadTime < (app.globalData.dbUpdateTime || 0)) {
       this.loadStats();
@@ -59,10 +216,12 @@ Page({
   },
 
   goTags() {
+    if (!this.data.activated) return;
     wx.navigateTo({ url: '/pages/tags/tags' });
   },
 
   clearAll() {
+    if (!this.data.activated) return;
     wx.showModal({
       title: '清空全部数据',
       content: '将删除所有标签记录和云端图片，不可恢复！确定继续吗？',
@@ -72,13 +231,9 @@ Page({
         wx.showLoading({ title: '清空中…' });
         try {
           const records = await api.fetchAllRecords();
-          const filesToDelete = [];
           for (const r of records) {
             await api.removeRecord(r._id);
-            filesToDelete.push(r.fileID, r.thumbFileID);
-            (r.extraFiles || []).forEach(f => filesToDelete.push(f.fileID, f.thumbFileID));
           }
-          await api.deleteCloudFiles(filesToDelete.filter(Boolean));
           getApp().globalData.dbUpdateTime = Date.now();
           wx.hideLoading();
           wx.showToast({ title: '已清空', icon: 'success' });

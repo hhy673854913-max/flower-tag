@@ -6,7 +6,9 @@ Page({
     running: false,
     lossless: true,   // 默认原图无损上传
     doneCount: 0,
-    failCount: 0
+    failCount: 0,
+    accessState: 'loading',
+    accessMessage: ''
   },
 
   onShow() {
@@ -15,11 +17,41 @@ Page({
     }
     const v = wx.getStorageSync('upload_lossless');
     this.setData({ lossless: v === '' ? true : !!v });
+    this.refreshAccess();
+  },
+
+  async refreshAccess() {
+    this.setData({ accessState: 'loading', accessMessage: '' });
+    try {
+      const status = await api.getAccessStatus();
+      this.setData({ accessState: status.activated ? 'active' : 'locked' });
+    } catch (error) {
+      this.setData({
+        accessState: 'error',
+        accessMessage: error.message || '云服务暂不可用，请稍后重试'
+      });
+    }
+  },
+
+  async ensureAccess() {
+    try {
+      const status = await api.getAccessStatus();
+      this.setData({ accessState: status.activated ? 'active' : 'locked' });
+      if (status.activated) return true;
+      wx.showToast({ title: '请先在「我的」输入校验码', icon: 'none' });
+    } catch (error) {
+      this.setData({
+        accessState: 'error',
+        accessMessage: error.message || '云服务暂不可用，请稍后重试'
+      });
+    }
+    return false;
   },
 
   /** 选图（相册 / 拍照） */
   async choose(e) {
     if (this.data.running) return;
+    if (!await this.ensureAccess()) return;
     const sourceType = e.currentTarget.dataset.source === 'camera' ? ['camera'] : ['album'];
     try {
       const res = await wx.chooseMedia({
@@ -36,6 +68,7 @@ Page({
         fileID: '',
         tags: null
       }));
+      this.clearList();
       this.setData({ items, doneCount: 0, failCount: 0 });
       this.processAll();
     } catch (err) {
@@ -80,6 +113,7 @@ Page({
       // 目前 quality: 60 的 thumbFile 绝大多数情况小于 1MB，若依然报错，可放行或提示。
       const secRes = await api.imgSecCheck(thumbFileID);
       if (!secRes.ok) {
+        if (secRes.accessDenied) throw new Error(secRes.error || '账号校验失败');
         console.error('主图安全检测失败详情:', secRes);
         if (secRes.isViolated) {
           await api.deleteCloudFiles([fileID, thumbFileID]);
@@ -108,15 +142,25 @@ Page({
     }
   },
 
-  retry(e) {
+  async retry(e) {
     if (this.data.running) return;
+    if (!await this.ensureAccess()) return;
     const i = Number(e.currentTarget.dataset.index);
+    const old = this.data.items[i];
+    try {
+      await api.deleteCloudFiles([old.fileID, old.thumbFileID]);
+      this.setData({ ['items[' + i + '].fileID']: '', ['items[' + i + '].thumbFileID']: '' });
+    } catch (error) {
+      wx.showToast({ title: '旧图片清理失败，请重试', icon: 'none' });
+      return;
+    }
     this.setData({ running: true, failCount: Math.max(0, this.data.failCount - 1) });
     this.processOne(i).then(() => this.setData({ running: false }));
   },
 
   /** 去确认标签 */
-  goConfirm() {
+  async goConfirm() {
+    if (!await this.ensureAccess()) return;
     const ready = this.data.items.filter(x => x.status === 'done');
     if (!ready.length) {
       wx.showToast({ title: '没有可确认的记录', icon: 'none' });

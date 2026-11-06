@@ -1,8 +1,8 @@
 /* 全局样式 */
 page {
-  background: #f6f8f6;
+  background: #f7f8f3;
   font-size: 28rpx;
-  color: #2b2f2b;
+  color: #27392c;
   font-family: -apple-system, "PingFang SC", "Helvetica Neue", sans-serif;
 }
 
@@ -19,10 +19,10 @@ page {
 
 /* 主按钮 */
 .btn-primary {
-  background: #2e7d4f;
+  background: #2d6543;
   color: #fff;
-  border-radius: 48rpx;
-  font-size: 32rpx;
+  border-radius: 12rpx;
+  font-size: 29rpx;
   padding: 22rpx 0;
   text-align: center;
 }
@@ -30,11 +30,11 @@ page {
   background: #b9cfc2;
 }
 .btn-ghost {
-  border: 2rpx solid #2e7d4f;
-  color: #2e7d4f;
-  background: #fff;
-  border-radius: 48rpx;
-  font-size: 32rpx;
+  border: 1rpx solid #c9d8cc;
+  color: #2d6543;
+  background: #fffdf9;
+  border-radius: 12rpx;
+  font-size: 29rpx;
   padding: 20rpx 0;
   text-align: center;
 }
@@ -100,9 +100,9 @@ page {
 }
 .grid .cell {
   width: calc((100% - 32rpx) / 3);
-  border-radius: 16rpx;
+  border-radius: 10rpx;
   overflow: hidden;
-  background: #fff;
+  background: #fffdf9;
 }
 .grid .thumb {
   width: 100%;
@@ -121,7 +121,7 @@ page {
 
 .empty {
   text-align: center;
-  color: #9aa39a;
+  color: #8b988b;
   padding: 120rpx 40rpx;
   font-size: 26rpx;
   line-height: 1.8;

@@ -5,9 +5,9 @@
   </view>
 
   <view wx:if="{{!list.length && !loading}}" class="empty">
-    <view class="empty-icon">🌸</view>
+    <view class="empty-icon">·</view>
     <view>还没有作品记录</view>
-    <view>点击底部「上传」，让 Kimi 帮你自动打标签</view>
+    <view>上传照片后，可按花材、颜色和风格整理</view>
   </view>
 
   <view class="grid">

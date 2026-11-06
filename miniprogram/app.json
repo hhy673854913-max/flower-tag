@@ -12,7 +12,7 @@
     "navigationBarBackgroundColor": "#ffffff",
     "navigationBarTitleText": "花艺图库",
     "navigationBarTextStyle": "black",
-    "backgroundColor": "#f6f8f6"
+    "backgroundColor": "#f7f8f3"
   },
   "tabBar": {
     "custom": true,

@@ -9,6 +9,16 @@ exports.main = async (event, context) => {
   if (!fileID) return { ok: false, error: '缺少 fileID' }
 
   try {
+    const status = await cloud.callFunction({ name: 'accessGate', data: { action: 'status' } })
+    if (!status.result || !status.result.canUpload
+      || typeof fileID !== 'string' || !fileID.includes('/' + status.result.filePrefix)) {
+      return { ok: false, accessDenied: true, error: '账号未开通或图片不属于当前账号' }
+    }
+  } catch (err) {
+    return { ok: false, accessDenied: true, error: '账号校验服务暂不可用' }
+  }
+    // 1. 下载图片
+  try {
     // 1. 下载图片
     const file = await cloud.downloadFile({ fileID })
     const buffer = file.fileContent

@@ -1,16 +1,41 @@
 <view class="page page-tab">
-  <view class="tip-card">
-    <view class="tip-title">{{lossless ? '当前为无损模式' : '当前为省流模式'}}</view>
-    <view class="tip-text" wx:if="{{lossless}}">原图将不经过任何压缩直接存入你的云端空间；AI 分析只使用临时压缩副本，分析后即删除。</view>
-    <view class="tip-text" wx:else>上传前会进行高画质压缩（有损）。如需无损存档，请到「我的 → 上传模式」切换。</view>
+  <view class="page-heading">
+    <view class="eyebrow">作品入库</view>
+    <view class="page-title">上传作品</view>
+    <view class="page-intro">选择照片，确认标签后保存到作品墙</view>
   </view>
 
-  <view class="pick-row" wx:if="{{!items.length}}">
-    <view class="btn-primary pick-btn" bindtap="choose" data-source="album">从相册选择（最多9张）</view>
-    <view class="btn-ghost pick-btn" bindtap="choose" data-source="camera">拍照上传</view>
+  <view class="access-panel" wx:if="{{accessState === 'loading'}}">正在确认空间状态…</view>
+  <view class="access-panel" wx:elif="{{accessState === 'error'}}">
+    <view class="access-title">暂时无法确认账号</view>
+    <view class="access-copy">{{accessMessage}}</view>
+    <view class="text-action" bindtap="refreshAccess">重新检查</view>
+    <view class="text-action" wx:if="{{items.length && !running}}" bindtap="clearList">清理未保存图片</view>
   </view>
+  <view class="access-panel" wx:elif="{{accessState === 'locked'}}">
+    <view class="access-index">01 / 开始之前</view>
+    <view class="access-title">先开启你的作品空间</view>
+    <view class="access-copy">在「我的」输入校验码后，就可以上传作品并自动整理标签。</view>
+    <navigator class="btn-primary open-action" url="/pages/my/my" open-type="switchTab">前往我的空间</navigator>
+    <view class="text-action" wx:if="{{items.length && !running}}" bindtap="clearList">清理未保存图片</view>
+  </view>
+  <block wx:else>
+    <view class="upload-card" wx:if="{{!items.length}}">
+      <view class="access-index">01 / 选择图片</view>
+      <view class="upload-title">为作品留一张照片</view>
+      <view class="upload-desc">一次最多 9 张，系统会为每张作品整理颜色、花材与风格。</view>
+      <view class="pick-row">
+        <view class="btn-primary pick-btn" bindtap="choose" data-source="album">从相册选择</view>
+        <view class="btn-ghost pick-btn" bindtap="choose" data-source="camera">拍照上传</view>
+      </view>
+    </view>
+    <view class="tip-card" wx:if="{{!items.length}}">
+      <view class="tip-title">{{lossless ? '原图无损保存' : '省流压缩保存'}}</view>
+      <view class="tip-text">{{lossless ? '原图用于长期存档；用于分析和列表展示的缩略图会单独保存。' : '上传前会压缩原图，节省流量与存储。可在「我的」切换。'}}</view>
+    </view>
+  </block>
 
-  <block wx:if="{{items.length}}">
+  <block wx:if="{{items.length && accessState === 'active'}}">
     <view class="progress-summary">
       共 {{items.length}} 张 · 完成 {{doneCount}}<text wx:if="{{failCount}}"> · 失败 {{failCount}}</text>
       <text class="clear" wx:if="{{!running}}" bindtap="clearList">清空</text>

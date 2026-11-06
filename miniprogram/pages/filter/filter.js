@@ -22,11 +22,24 @@ Page({
   
   _lastLoadTime: 0,
 
-  onShow() {
+  async onShow() {
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ selected: 1 });
     }
     const app = getApp();
+    try {
+      const status = await api.getAccessStatus();
+      if (!status.activated) {
+        this.setData({ records: [], results: [], dims: [], flowers: [], loading: false });
+        this._lastLoadTime = 0;
+        return;
+      }
+    } catch (error) {
+      this.setData({ records: [], results: [], dims: [], flowers: [], loading: false });
+      this._lastLoadTime = 0;
+      wx.showToast({ title: error.message, icon: 'none' });
+      return;
+    }
     if (!this._lastLoadTime || this._lastLoadTime < (app.globalData.dbUpdateTime || 0)) {
       this.loadAll();
     }

@@ -4,10 +4,10 @@
   left: 0;
   right: 0;
   height: 120rpx;
-  background: white;
+  background: #fffdf9;
   display: flex;
   padding-bottom: env(safe-area-inset-bottom);
-  box-shadow: 0 -2rpx 10rpx rgba(0,0,0,0.05);
+  box-shadow: 0 -2rpx 12rpx rgba(33, 57, 37, 0.035);
   z-index: 9999;
 }
 
@@ -44,6 +44,6 @@
 
 .tab-bar-text.selected {
   color: #2e7d4f;
-  font-weight: bold;
-  font-size: 26rpx; /* 稍微放大一点 */
+  font-weight: 600;
+  font-size: 24rpx;
 }

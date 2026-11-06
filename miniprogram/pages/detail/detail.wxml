@@ -1,4 +1,5 @@
 <view class="page" wx:if="{{record}}">
+  <view class="share-info" wx:if="{{shared}}">{{authorName}}的花艺作品 · 只读展示</view>
   <swiper class="hero-swiper" indicator-dots="{{true}}" circular="{{false}}" autoplay="{{false}}" bindchange="onSwiperChange">
     <!-- 主图 -->
     <swiper-item>
@@ -9,10 +10,10 @@
       <image class="hero" src="{{item}}" mode="aspectFit" bindtap="previewOriginal" data-idx="{{index + 1}}" />
     </swiper-item>
   </swiper>
-  
+
   <view class="hero-actions">
     <view class="btn-ghost orig-btn" bindtap="previewOriginal" data-idx="{{currentSwiperIdx || 0}}">{{loadingOriginal ? '加载中…' : '查看原图'}}</view>
-    <view class="btn-ghost orig-btn" bindtap="addExtraImages" wx:if="{{!editing && record && (!record.extraFiles || record.extraFiles.length < 8)}}">添加附加图</view>
+    <view class="btn-ghost orig-btn" bindtap="addExtraImages" wx:if="{{canManage && !editing && record && (!record.extraFiles || record.extraFiles.length < 8)}}">添加附加图</view>
   </view>
 
   <view class="edit-tip" wx:if="{{editing}}">编辑模式：点选修改标签，花材长按可调整角色</view>
@@ -54,12 +55,18 @@
     <view class="none-flower" wx:if="{{!record[role.key].length}}">无</view>
   </view>
 
-  <view class="action-row" wx:if="{{!editing}}">
+  <view class="action-row" wx:if="{{canManage && !editing}}">
     <view class="btn-ghost act" bindtap="toggleEdit">编辑标签</view>
     <view class="btn-danger act" bindtap="remove">删除</view>
   </view>
-  <view class="action-row" wx:else>
+  <view class="action-row" wx:elif="{{canManage && editing}}">
     <view class="btn-ghost act" bindtap="toggleEdit">取消</view>
     <view class="btn-primary act {{saving ? 'disabled' : ''}}" bindtap="save">保存修改</view>
   </view>
+  <view class="share-panel" wx:if="{{canManage && !editing}}">
+    <view class="btn-ghost" bindtap="setSharing">{{shareBusy ? '处理中…' : shareToken ? '停止作品分享' : '开启作品分享'}}</view>
+    <button class="btn-primary share-button" wx:if="{{shareToken}}" open-type="share">分享给好友</button>
+  </view>
 </view>
+<view class="page empty" wx:elif="{{loadError}}">{{loadError}}</view>
+<view class="page empty" wx:else>正在读取作品…</view>

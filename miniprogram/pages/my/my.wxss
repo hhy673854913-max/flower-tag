@@ -1,67 +1,71 @@
-.stat-card {
-  background: linear-gradient(135deg, #2e7d4f, #4a9e6c);
-  border-radius: 20rpx;
-  padding: 40rpx 32rpx;
-  color: #fff;
-}
-.stat-main {
-  text-align: center;
-  margin-bottom: 32rpx;
-}
-.stat-num {
-  font-size: 72rpx;
-  font-weight: 700;
-}
-.stat-label {
-  font-size: 24rpx;
-  opacity: 0.85;
-}
-.stat-grid {
-  display: flex;
-}
-.stat-item {
-  flex: 1;
-  text-align: center;
-}
-.stat-item .v {
-  font-size: 32rpx;
+.page-heading { padding: 20rpx 4rpx 42rpx; }
+.eyebrow, .card-label {
+  color: #648170;
+  font-size: 20rpx;
   font-weight: 600;
+  letter-spacing: 3rpx;
 }
-.stat-item .k {
+.page-title { color: #24362c; font-size: 48rpx; font-weight: 600; margin-top: 12rpx; }
+.page-intro { color: #7b887d; font-size: 26rpx; margin-top: 10rpx; }
+.access-card, .stat-card, .admin-card {
+  background: #fffdf9;
+  border: 1rpx solid #e6e9df;
+  border-radius: 24rpx;
+  padding: 36rpx;
+}
+.access-title { color: #24362c; font-size: 36rpx; font-weight: 600; margin-top: 18rpx; }
+.access-copy { color: #69776c; font-size: 26rpx; line-height: 1.7; margin-top: 18rpx; }
+.retry-action { color: #2d6543; font-size: 28rpx; margin-top: 30rpx; padding: 12rpx 0; }
+.code-input {
+  height: 92rpx;
+  margin-top: 38rpx;
+  padding: 0 26rpx;
+  border: 1rpx solid #ccd8ca;
+  border-radius: 12rpx;
+  background: #f7f9f4;
+  color: #24362c;
+  font-size: 30rpx;
+}
+.input-placeholder { color: #9ba99c; }
+.access-action { margin-top: 22rpx; }
+.access-note { color: #9aa59a; font-size: 22rpx; line-height: 1.5; margin-top: 22rpx; }
+.stat-top, .admin-header { display: flex; justify-content: space-between; align-items: flex-start; }
+.stat-heading { color: #354c3c; font-size: 30rpx; margin-top: 12rpx; }
+.access-badge {
+  color: #3b7452;
+  background: #eaf2e7;
+  border-radius: 24rpx;
+  padding: 8rpx 18rpx;
   font-size: 22rpx;
-  opacity: 0.85;
-  margin-top: 6rpx;
 }
-
-.menu {
-  margin-top: 32rpx;
-  background: #fff;
-  border-radius: 20rpx;
-  overflow: hidden;
-}
-.menu-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 32rpx;
-  border-bottom: 2rpx solid #f0f3f0;
-  font-size: 28rpx;
-}
-.menu-item:last-child {
-  border-bottom: none;
-}
-.menu-left {
-  flex: 1;
-}
-.menu-sub {
-  font-size: 22rpx;
-  color: #9aa39a;
-  margin-top: 6rpx;
-}
-.arrow {
-  color: #c4ccc4;
-  font-size: 36rpx;
-}
-.danger {
-  color: #c0392b;
-}
+.stat-main { margin: 32rpx 0 30rpx; color: #244832; }
+.stat-num { font-size: 88rpx; font-weight: 600; line-height: 1; }
+.stat-unit { margin-left: 12rpx; color: #6a7a6c; font-size: 24rpx; }
+.stat-grid { display: flex; border-top: 1rpx solid #e9eee6; padding-top: 26rpx; }
+.stat-item { flex: 1; min-width: 0; }
+.stat-item + .stat-item { border-left: 1rpx solid #e9eee6; padding-left: 24rpx; }
+.stat-item .v { color: #354c3c; font-size: 28rpx; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stat-item .k { color: #8b988b; font-size: 22rpx; margin-top: 8rpx; }
+.section-caption { color: #738375; font-size: 23rpx; margin: 42rpx 4rpx 16rpx; letter-spacing: 2rpx; }
+.menu { background: #fffdf9; border: 1rpx solid #e6e9df; border-radius: 20rpx; overflow: hidden; }
+.menu-item { display: flex; align-items: center; justify-content: space-between; padding: 29rpx 32rpx; border-bottom: 1rpx solid #edf0e9; color: #304638; font-size: 28rpx; }
+.menu-item:last-child { border-bottom: none; }
+.menu-left { flex: 1; }
+.menu-sub { color: #89968a; font-size: 22rpx; margin-top: 8rpx; }
+.arrow { color: #9aaa9a; font-size: 36rpx; }
+.danger { color: #a36759; }
+.secondary-menu { margin-top: 32rpx; }
+.admin-title { color: #304638; font-size: 30rpx; margin-top: 10rpx; }
+.refresh-link { color: #377454; font-size: 24rpx; padding: 8rpx; }
+.admin-empty { color: #9aa59a; padding-top: 32rpx; font-size: 24rpx; }
+.admin-row { border-top: 1rpx solid #edf0e9; display: flex; justify-content: space-between; padding: 24rpx 0; font-size: 24rpx; }
+.admin-row:first-of-type { margin-top: 24rpx; }
+.admin-id { color: #354c3c; }
+.admin-date { color: #8b988b; }
+.profile-card { margin-top: 24rpx; }
+.admin-info { min-width: 0; flex: 1; margin-right: 16rpx; }
+.admin-id { font-size: 28rpx; font-weight: 600; }
+.admin-code { color: #66776b; margin-top: 12rpx; word-break: break-all; }
+.admin-date { margin-top: 10rpx; line-height: 1.6; }
+.revoke-button { margin: 0; padding: 8rpx 16rpx; align-self: flex-start; font-size: 23rpx; color: #a36759; background: #fbf1ec; line-height: 1.8; }
+.revoke-button::after { border: none; }
