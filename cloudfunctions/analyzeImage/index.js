@@ -11,8 +11,64 @@
  */
 const cloud = require('wx-server-sdk');
 const https = require('https');
+const crypto = require('crypto');
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
+const db = cloud.database();
+const accounts = db.collection('accessAccounts');
+
+function hash(value) {
+  return crypto.createHash('sha256').update(value).digest('hex');
+}
+
+function filePrefix(openid) {
+  return 'userFiles/' + hash(openid) + '/';
+}
+
+async function getAccount(openid) {
+  try {
+    const result = await accounts.where({ _id: openid }).limit(1).get();
+    return result.data[0] || null;
+  } catch (error) {
+    const message = String(error && error.message || error || '');
+    if (/collection not exists|COLLECTION_NOT_EXIST|Db or Table not exist/i.test(message)) {
+      return null;
+    }
+    throw error;
+  }
+}
+
+async function isAdmin(openid) {
+  if (!openid) return false;
+  const envAdmins = (process.env.ADMIN_OPENIDS || '')
+    .split(',')
+    .map(item => item.trim())
+    .filter(Boolean);
+  if (envAdmins.includes(openid)) return true;
+  try {
+    const result = await db.collection('admins').where({ openid }).limit(1).get();
+    return result.data.length > 0;
+  } catch (error) {
+    const message = String(error && error.message || error || '');
+    if (/collection not exists|COLLECTION_NOT_EXIST|Db or Table not exist/i.test(message)) {
+      return false;
+    }
+    throw error;
+  }
+}
+
+async function checkUploadAccess(fileID) {
+  const openid = cloud.getWXContext().OPENID;
+  if (!openid) return { ok: false, error: '无法识别当前微信用户' };
+  const [admin, account] = await Promise.all([isAdmin(openid), getAccount(openid)]);
+  const activated = admin || !!(account && account.activated === true && !account.cleanupPending);
+  if (!activated) return { ok: false, error: '请先在「我的」输入校验码成为花艺师' };
+  const prefix = '/' + filePrefix(openid);
+  if (typeof fileID !== 'string' || fileID.indexOf(prefix) < 0) {
+    return { ok: false, error: '图片不属于当前账号' };
+  }
+  return { ok: true };
+}
 
 // 两个提供方都走 OpenAI 兼容的 /chat/completions 协议，请求体可复用
 const PROVIDERS = {
@@ -179,13 +235,8 @@ exports.main = async (event) => {
   if (!fileID) return { ok: false, error: '缺少 fileID' };
 
   try {
-    const openid = cloud.getWXContext().OPENID;
-    if (!openid) return { ok: false, error: '无法识别当前微信用户' };
-    const status = await cloud.callFunction({ name: 'accessGate', data: { action: 'status' } });
-    if (!status.result || !status.result.canUpload) return { ok: false, error: '请先在「我的」输入校验码成为花艺师' };
-    if (typeof fileID !== 'string' || !fileID.includes('/' + status.result.filePrefix)) {
-      return { ok: false, error: '图片不属于当前账号' };
-    }
+    const access = await checkUploadAccess(fileID);
+    if (!access.ok) return access;
   } catch (error) {
     console.error('access check:', error);
     return { ok: false, error: '账号校验失败，请稍后重试' };
