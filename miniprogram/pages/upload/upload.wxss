@@ -60,7 +60,23 @@
 }
 .s-done { color: #2e7d4f; }
 .s-error { color: #c0392b; font-size: 24rpx; }
-.s-uploading, .s-analyzing { color: #b8860b; }
+.s-uploading, .s-compressing, .s-thumbnail, .s-checking, .s-analyzing { color: #4a6953; }
+.status-spinner {
+  display: inline-block;
+  width: 20rpx;
+  height: 20rpx;
+  margin-right: 12rpx;
+  border: 3rpx solid #dce5dc;
+  border-top-color: #4a6953;
+  border-radius: 50%;
+  vertical-align: -2rpx;
+  animation: status-turn 1s linear infinite;
+}
+@keyframes status-turn { to { transform: rotate(360deg); } }
+.stage-meta { color: #7b887d; font-size: 21rpx; margin-top: 12rpx; }
+.stage-hint { color: #69776c; font-size: 22rpx; line-height: 1.6; margin-top: 10rpx; }
+.upload-track { height: 6rpx; background: #e9efe9; border-radius: 6rpx; margin-top: 14rpx; overflow: hidden; }
+.upload-fill { height: 100%; background: #648170; border-radius: 6rpx; transition: width .2s ease; }
 .item-tags {
   margin-top: 8rpx;
   font-size: 24rpx;

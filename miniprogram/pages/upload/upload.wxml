@@ -46,11 +46,21 @@
       <view class="item-info">
         <view class="item-status s-{{item.status}}">
           <block wx:if="{{item.status === 'pending'}}">等待处理…</block>
-          <block wx:elif="{{item.status === 'uploading'}}">原图上传中…</block>
-          <block wx:elif="{{item.status === 'analyzing' }}">AI模型分析中…</block>
           <block wx:elif="{{item.status === 'done'}}">✓ 打标完成</block>
-          <block wx:else>✗ {{item.error}}</block>
+          <block wx:elif="{{item.status === 'error'}}">✗ {{item.error}}</block>
+          <block wx:else><text class="status-spinner"></text>{{item.stageLabel}}</block>
         </view>
+        <block wx:if="{{item.status !== 'pending' && item.status !== 'done' && item.status !== 'error'}}">
+          <view class="stage-meta">
+            <text>{{item.stageStep}} / 4</text>
+            <text wx:if="{{item.status === 'uploading' || item.status === 'thumbnail'}}"> · 已上传 {{item.uploadProgress}}%</text>
+            <text> · 已等待 {{item.elapsedSeconds}} 秒</text>
+          </view>
+          <view class="upload-track" wx:if="{{item.status === 'uploading' || item.status === 'thumbnail'}}">
+            <view class="upload-fill" style="width: {{item.uploadProgress}}%;"></view>
+          </view>
+          <view class="stage-hint">{{item.hint}}</view>
+        </block>
         <view class="item-tags" wx:if="{{item.status === 'done'}}">
           {{item.tags.category}} · {{item.tags.style}}<block wx:if="{{item.tags.flowersMain.length}}"> · {{item.tags.flowersMain[0]}}</block>
         </view>
@@ -59,7 +69,7 @@
     </view>
 
     <view class="btn-primary {{running || !doneCount ? 'disabled' : ''}}" style="margin-top:40rpx" bindtap="goConfirm">
-      去确认标签（{{doneCount}}）
+      {{running ? '正在处理，请稍候' : '去确认标签（' + doneCount + '）'}}
     </view>
   </block>
 </view>

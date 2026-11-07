@@ -35,16 +35,26 @@ async function cleanupFlorist(id) { return accessGate('cleanup', { id }); }
 async function shareRecord(id, enabled) { return accessGate('shareRecord', { id, enabled }); }
 async function readSharedRecord(token) { return accessGate('readShared', { token }); }
 
-async function uploadImage(filePath, thumbnail) {
+async function uploadImage(filePath, thumbnail, onProgress) {
   const status = await requireAccess();
   const match = /\.(\w+)(\?|$)/.exec(filePath);
   const ext = thumbnail ? '.jpg' : match ? '.' + match[1].toLowerCase() : '.jpg';
   const cloudPath = status.filePrefix + (thumbnail ? 'thumbs/' : 'works/')
     + Date.now() + '_' + Math.random().toString(36).slice(2, 10) + ext;
-  return (await wx.cloud.uploadFile({ cloudPath, filePath })).fileID;
+  // 回调形式返回 UploadTask，才能订阅真实上传进度。
+  return new Promise((resolve, reject) => {
+    const task = wx.cloud.uploadFile({
+      cloudPath, filePath,
+      success: result => resolve(result.fileID),
+      fail: reject
+    });
+    if (typeof onProgress === 'function' && task && task.onProgressUpdate) {
+      task.onProgressUpdate(result => onProgress(result.progress));
+    }
+  });
 }
-async function uploadWorkImage(filePath) { return uploadImage(filePath, false); }
-async function uploadThumbImage(filePath) { return uploadImage(filePath, true); }
+async function uploadWorkImage(filePath, onProgress) { return uploadImage(filePath, false, onProgress); }
+async function uploadThumbImage(filePath, onProgress) { return uploadImage(filePath, true, onProgress); }
 async function deleteCloudFiles(fileIDs) {
   const ids = [...new Set((fileIDs || []).filter(Boolean))];
   for (let i = 0; i < ids.length; i += 50) {

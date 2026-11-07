@@ -6,6 +6,7 @@
  *   AI_PROVIDER       可选，模型提供方：qwen（默认）/ kimi
  *   DASHSCOPE_API_KEY qwen 模式必填，阿里云百炼 API Key
  *   QWEN_MODEL        可选，默认 qwen-vl-plus
+ *   QWEN_ENABLE_THINKING 可选，true/false；qwen3.7-flash 默认 false，其他模型默认不传
  *   KIMI_API_KEY      kimi 模式必填，Moonshot 开放平台 API Key
  *   KIMI_MODEL        可选，默认 moonshot-v1-32k-vision-preview
  */
@@ -92,7 +93,21 @@ function getProvider() {
   if (!p) {
     throw new Error('AI_PROVIDER 配置无效：' + name + '（可选值：' + Object.keys(PROVIDERS).join(' / ') + '）');
   }
-  return { name, url: p.url, apiKey: process.env[p.keyEnv], model: process.env[p.modelEnv] || p.defaultModel, keyEnv: p.keyEnv };
+  return { name, url: p.url, apiKey: process.env[p.keyEnv], model: (process.env[p.modelEnv] || p.defaultModel).trim(), keyEnv: p.keyEnv };
+}
+
+function thinkingOptions(provider) {
+  if (provider.name !== 'qwen') return {};
+  const configured = (process.env.QWEN_ENABLE_THINKING || '').trim().toLowerCase();
+  if (configured && configured !== 'true' && configured !== 'false') {
+    throw new Error('QWEN_ENABLE_THINKING 配置无效（请填 true 或 false）');
+  }
+  if (configured) return { enable_thinking: configured === 'true' };
+  // 仅对明确支持混合思考模式的当前 Flash 型号自动关闭，保留旧 Qwen-VL/Kimi 的请求兼容性。
+  if (/^qwen3\.7-flash(?:-\d{4}-\d{2}-\d{2})?$/.test(provider.model)) {
+    return { enable_thinking: false };
+  }
+  return {};
 }
 
 const COLORS = ['红', '粉', '橙', '黄', '绿', '紫', '蓝', '白', '香槟色', '复古色', '混色'];
@@ -231,6 +246,7 @@ function normalize(raw) {
 }
 
 exports.main = async (event) => {
+  const startedAt = Date.now();
   const fileID = event && event.fileID;
   if (!fileID) return { ok: false, error: '缺少 fileID' };
 
@@ -243,8 +259,10 @@ exports.main = async (event) => {
   }
 
   let provider;
+  let options;
   try {
     provider = getProvider();
+    options = thinkingOptions(provider);
   } catch (e) {
     return { ok: false, error: e.message };
   }
@@ -252,16 +270,22 @@ exports.main = async (event) => {
     return { ok: false, error: '云函数未配置 ' + provider.keyEnv + ' 环境变量（当前 AI_PROVIDER=' + provider.name + '）' };
   }
 
+  const timing = { accessMs: Date.now() - startedAt };
+  let modelStartedAt;
   try {
     // 1. 下载分析副本并转 base64
+    const downloadStartedAt = Date.now();
     const file = await cloud.downloadFile({ fileID });
     const base64 = file.fileContent.toString('base64');
+    timing.downloadMs = Date.now() - downloadStartedAt;
+    timing.imageBytes = file.fileContent.length;
 
-    // 2. 调视觉模型（qwen-vl-plus 或 kimi vision，均为 OpenAI 兼容协议）
+    // 2. 调视觉模型，保持六维标签输出结构。
+    modelStartedAt = Date.now();
     const resp = await postJson(
       provider.url,
       { Authorization: 'Bearer ' + provider.apiKey },
-      {
+      Object.assign({
         model: provider.model,
         temperature: 0.2,
         messages: [
@@ -274,16 +298,28 @@ exports.main = async (event) => {
             ]
           }
         ]
-      }
+      }, options)
     );
+    timing.modelMs = Date.now() - modelStartedAt;
 
     if (resp.error) throw new Error(resp.error.message || 'AI 接口报错（' + provider.name + '）');
     const content = resp.choices && resp.choices[0] && resp.choices[0].message
       ? resp.choices[0].message.content : '';
     const tags = normalize(extractJson(content));
+    timing.ok = true;
     return { ok: true, tags };
   } catch (e) {
+    timing.ok = false;
     return { ok: false, error: e.message || String(e) };
+  } finally {
+    if (modelStartedAt && timing.modelMs === undefined) timing.modelMs = Date.now() - modelStartedAt;
+    // 仅记录耗时和请求规模，不记录图片、密钥、用户身份或完整响应。
+    console.info('analyzeImage timing', Object.assign(timing, {
+      provider: provider.name,
+      model: provider.model,
+      thinking: options.enable_thinking === undefined ? 'provider-default' : options.enable_thinking,
+      totalMs: Date.now() - startedAt
+    }));
   }
   // 注意：入参 fileID 是 thumbs/ 下长期保存的缩略图（列表/详情展示共用），
   // 本函数只读取、绝不删除。早期的 analysis/ 一次性副本机制已废弃。
