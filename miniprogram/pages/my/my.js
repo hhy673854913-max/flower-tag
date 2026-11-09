@@ -141,19 +141,30 @@ Page({
   },
 
   revokeFlorist(e) {
-    if (!this.data.isAdmin || this.data.revokingId) return;
+    if (!this.data.isAdmin || this.data.revokingId || this._revokeConfirming) return;
     const item = this.data.accessRecords.find(row => row.id === e.currentTarget.dataset.id);
-    if (!item) return;
+    if (!item) {
+      wx.showToast({ title: '账号列表已变化，请刷新后重试', icon: 'none' });
+      return;
+    }
+    this._revokeConfirming = true;
     wx.showModal({
       title: item.cleanupPending ? '继续清理作品' : '撤销花艺师权限',
       content: `将「${item.name}」降级为其他用户，并永久删除其全部作品、原图、缩略图、附加图与自定义标签。已有作品分享立即失效。确定继续吗？`,
-      confirmText: item.cleanupPending ? '继续清理' : '撤销并删除',
+      // 微信原生确认按钮最多 4 个字符，超长会导致弹窗调用失败。
+      confirmText: item.cleanupPending ? '继续清理' : '确认撤销',
       confirmColor: '#a36759',
-      success: res => { if (res.confirm) this.performRevoke(item); }
+      success: res => { if (res.confirm) this.performRevoke(item); },
+      fail: error => {
+        console.error('撤销确认弹窗失败:', error);
+        wx.showToast({ title: '确认窗口打开失败，请重试', icon: 'none' });
+      },
+      complete: () => { this._revokeConfirming = false; }
     });
   },
 
   async performRevoke(item) {
+    if (!this.data.isAdmin || this.data.revokingId) return;
     this.setData({ revokingId: item.id, revokeProgress: '正在撤销权限并清理作品…' });
     let deleted = 0;
     try {
@@ -167,7 +178,12 @@ Page({
       getApp().globalData.dbUpdateTime = Date.now();
       wx.showToast({ title: '权限已撤销，作品已清理', icon: 'none' });
     } catch (error) {
-      wx.showModal({ title: '清理未完成', content: error.message + '。刷新列表后可继续清理，权限保持关闭。', showCancel: false });
+      wx.showModal({
+        title: '操作未完成',
+        content: (error.message || '服务暂不可用') + '。请刷新列表确认账号状态；显示“作品待清理”时，权限已关闭，可继续清理。',
+        showCancel: false,
+        fail: () => wx.showToast({ title: '操作未完成，请刷新列表查看', icon: 'none' })
+      });
     } finally {
       this.setData({ revokingId: '', revokeProgress: '' });
       this.loadAccessRecords();

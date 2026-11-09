@@ -1,0 +1,31 @@
+﻿[Script Info]
+ScriptType: v4.00+
+PlayResX: 720
+PlayResY: 1600
+WrapStyle: 0
+ScaledBorderAndShadow: yes
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Default,Microsoft YaHei,34,&H00FFFFFF,&H00FFFFFF,&H002E3B30,&HA0000000,-1,0,0,0,100,100,0,0,3,10,0,2,36,36,120,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.10,0:00:02.98,Default,,0,0,0,,花艺图库｜上传照片，AI\N自动打标，按标签秒查作品
+Dialogue: 0,0:00:03.13,0:00:10.51,Default,,0,0,0,,新用户在「我的」填写名字和校验码，\N一键开通
+Dialogue: 0,0:00:10.66,0:00:15.81,Default,,0,0,0,,开通后自动识别身份，无需重复输入
+Dialogue: 0,0:00:15.96,0:00:22.48,Default,,0,0,0,,从相册选择作品照片，\N默认无损上传，保留高清原图
+Dialogue: 0,0:00:22.63,0:00:31.28,Default,,0,0,0,,内容安全校验后，\N视觉大模型自动分析图片
+Dialogue: 0,0:00:31.43,0:00:41.28,Default,,0,0,0,,AI 自动提取颜色、花材、种类、\N风格、用途等标签，人工确认后入库
+Dialogue: 0,0:00:41.43,0:00:47.11,Default,,0,0,0,,保存后正式归档到作品墙
+Dialogue: 0,0:00:47.26,0:00:51.41,Default,,0,0,0,,所有归档作品按时间瀑布流展示
+Dialogue: 0,0:00:51.56,0:01:06.91,Default,,0,0,0,,同维度多选为「或」，\N跨维度为「与」，组合筛选一秒定位
+Dialogue: 0,0:01:07.06,0:01:11.91,Default,,0,0,0,,详情页支持查看原图与添加附加图
+Dialogue: 0,0:01:12.06,0:01:18.91,Default,,0,0,0,,点击查看高清原图，\N作品细节清晰可见
+Dialogue: 0,0:01:19.06,0:01:21.41,Default,,0,0,0,,每个作品最多可添加 8 张附加图
+Dialogue: 0,0:01:21.56,0:01:23.41,Default,,0,0,0,,上传附加图
+Dialogue: 0,0:01:23.56,0:01:32.41,Default,,0,0,0,,顶部左右滑动，即可切换多角度照片
+Dialogue: 0,0:01:32.56,0:01:36.91,Default,,0,0,0,,标签可随时人工修正，\N保存后立即生效
+Dialogue: 0,0:01:37.06,0:01:45.91,Default,,0,0,0,,开启作品分享，即可发送给微信好友
+Dialogue: 0,0:01:46.06,0:01:51.34,Default,,0,0,0,,对方以只读模式查看该作品，\N停止分享后链接立即失效
+Dialogue: 0,0:01:51.49,0:01:58.04,Default,,0,0,0,,个人作品统计一目了然\N—— 让每一束花都记得
