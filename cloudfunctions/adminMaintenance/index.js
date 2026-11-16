@@ -142,7 +142,10 @@ async function wipeNextBatch(collections, batchSize) {
   const result = await db.collection(pending.name).limit(batchSize).get();
   const rows = result.data || [];
   const fileIDs = new Set();
-  rows.forEach(row => collectFileIDs(row, fileIDs));
+  // Portfolio links own references only; record deletion owns the image lifecycle.
+  rows.forEach(row => {
+    if (pending.name !== 'shareLinks' || row.type !== 'portfolio') collectFileIDs(row, fileIDs);
+  });
 
   const ids = Array.from(fileIDs);
   const deletedFileIDs = ids.length ? await deleteFiles(ids) : 0;

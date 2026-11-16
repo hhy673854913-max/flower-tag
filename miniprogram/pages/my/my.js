@@ -150,7 +150,7 @@ Page({
     this._revokeConfirming = true;
     wx.showModal({
       title: item.cleanupPending ? '继续清理作品' : '撤销花艺师权限',
-      content: `将「${item.name}」降级为其他用户，并永久删除其全部作品、原图、缩略图、附加图与自定义标签。已有作品分享立即失效。确定继续吗？`,
+      content: `将「${item.name}」降级为其他用户，并永久删除其全部作品、原图、缩略图、附加图与自定义标签。已有单件分享及作品集链接立即失效，重新开通也不会恢复旧作品集链接；已下载图片或仍有效的临时图片链接无法追溯收回。确定继续吗？`,
       // 微信原生确认按钮最多 4 个字符，超长会导致弹窗调用失败。
       confirmText: item.cleanupPending ? '继续清理' : '确认撤销',
       confirmColor: '#a36759',
@@ -236,6 +236,17 @@ Page({
     wx.navigateTo({ url: '/pages/tags/tags' });
   },
 
+  goPortfolio() {
+    if (this.data.accessLoading || this.data.accessError || this.data.cleanupPending
+      || !(this.data.activated || this.data.isAdmin) || this._portfolioOpening) return;
+    this._portfolioOpening = true;
+    wx.navigateTo({
+      url: '/pages/portfolio-manage/portfolio-manage',
+      fail: () => wx.showToast({ title: '作品集页面打开失败，请重试', icon: 'none' }),
+      complete: () => { this._portfolioOpening = false; }
+    });
+  },
+
   clearAll() {
     if (!this.data.activated) return;
     wx.showModal({
@@ -262,11 +273,21 @@ Page({
     });
   },
 
+  goFeedback() {
+    this.openPublicPage('/pages/feedback/feedback', '反馈');
+  },
+
   about() {
-    wx.showModal({
-      title: '关于花艺图库',
-      content: '上传作品照片，由 Kimi 视觉模型自动生成颜色 / 花材 / 种类 / 风格 / 用途五维标签，支持组合筛选。\n\n图片默认原图无损保存于你自己的微信云存储空间，标签数据仅本人可见。',
-      showCancel: false
+    this.openPublicPage('/pages/about/about', '关于');
+  },
+
+  openPublicPage(url, label) {
+    if (this._publicPageOpening) return;
+    this._publicPageOpening = true;
+    wx.navigateTo({
+      url,
+      fail: () => wx.showToast({ title: `${label}页面打开失败，请重试`, icon: 'none' }),
+      complete: () => { this._publicPageOpening = false; }
     });
   }
 });

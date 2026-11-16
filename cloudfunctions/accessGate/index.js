@@ -109,6 +109,21 @@ async function checkedName(value, openid) {
   if (result.errCode || (result.result && result.result.suggest !== 'pass')) fail('名字未通过内容审核，请修改后重试');
   return name;
 }
+async function checkedPortfolioText(content, openid) {
+  let result;
+  try {
+    result = await cloud.openapi.security.msgSecCheck({ content, version: 2, scene: 1, openid });
+  } catch (error) {
+    if (Number(error.errCode || error.errcode) === 87014) fail('作品集文本未通过内容审核，请修改后重试');
+    fail('作品集文本审核服务暂不可用，请稍后重试');
+  }
+  if (!result || (result.errCode !== undefined && result.errCode !== 0)) {
+    if (result && Number(result.errCode) === 87014) fail('作品集文本未通过内容审核，请修改后重试');
+    fail('作品集文本审核服务暂不可用，请稍后重试');
+  }
+  if (!result.result || typeof result.result.suggest !== 'string') fail('作品集文本审核服务暂不可用，请稍后重试');
+  if (result.result.suggest !== 'pass') fail('作品集文本未通过内容审核，请修改后重试');
+}
 async function transactionAccount(tx, openid) {
   try {
     return (await tx.collection('accessAccounts').doc(openid).get()).data;
@@ -141,6 +156,10 @@ function pickTags(input) {
   TAG_KEYS.forEach(key => { if (input[key] !== undefined) result[key] = input[key]; });
   return result;
 }
+const portfolio = require('./portfolio')({
+  db, cloud, userWrite, getAccount, isAdmin, owner, ownedWhere, fail, pickTags, checkedPortfolioText
+});
+const feedback = require('./feedback')({ db, cloud, getAccount, isAdmin });
 function assertFile(fileID, openid) {
   if (typeof fileID !== 'string' || !fileID.startsWith('cloud://')
     || fileID.slice(fileID.indexOf('/') + 2).indexOf('/' + filePrefix(openid)) < 0) {
@@ -191,6 +210,13 @@ async function cleanupBatch(openid) {
   const tags = await db.collection('tags').where(ownedWhere(openid)).limit(100).get();
   for (const tag of tags.data) await db.collection('tags').doc(tag._id).remove();
   if (tags.data.length === 100) return { ok: true, hasMore: true, deleted: result.data.length };
+  try {
+    const links = await db.collection('shareLinks').where({ type: 'portfolio', ownerOpenid: openid }).limit(100).get();
+    for (const link of links.data) await db.collection('shareLinks').doc(link._id).remove();
+    if (links.data.length === 100) return { ok: true, hasMore: true, deleted: result.data.length };
+  } catch (error) {
+    if (!/collection not exists|COLLECTION_NOT_EXIST|Db or Table not exist/i.test(String(error.message || error))) throw error;
+  }
   await accounts.doc(openid).update({ data: { cleanupPending: false, cleanedAt: db.serverDate() } });
   return { ok: true, hasMore: false, deleted: result.data.length };
   } finally {
@@ -208,7 +234,9 @@ exports.main = async (event = {}) => {
   if (!openid) return { ok: false, error: '无法识别当前微信用户' };
   const action = event.action;
   try {
+    if (action === 'submitFeedback') return await feedback.submitFeedback(event, openid);
     const admin = await isAdmin(openid);
+    if (Object.prototype.hasOwnProperty.call(portfolio, action)) return await portfolio[action](event, openid);
     if (action === 'status') return publicStatus(await getAccount(openid), openid, admin);
     if (action === 'redeem') {
       const existing = await getAccount(openid);
@@ -273,7 +301,8 @@ exports.main = async (event = {}) => {
         await tx.collection('accessAccounts').doc(target).set({
           data: accountData(account, { activated: false, cleanupPending: true,
             revokedAt: db.serverDate(), revokedBy: openid,
-            writeVersion: (account.writeVersion || 0) + 1 })
+            writeVersion: (account.writeVersion || 0) + 1,
+            portfolioVersion: crypto.randomBytes(16).toString('hex') })
         });
       });
       return await cleanupBatch(target);
@@ -391,7 +420,7 @@ exports.main = async (event = {}) => {
     // 不记录请求体；其中可能包含校验码。
     const message = String(error.message || error);
     if (/collection not exists|COLLECTION_NOT_EXIST|Db or Table not exist/i.test(message)) {
-      return { ok: false, error: '账号服务初始化未完成，请检查 accessAccounts、records、tags 集合' };
+      return { ok: false, error: '账号服务初始化未完成，请检查 accessAccounts、records、tags、shareLinks 集合' };
     }
     if (/transaction|conflict/i.test(message)) return { ok: false, error: '账号状态发生变化，请重新检查后重试' };
     if (/msgSecCheck|security|87014/i.test(message)) return { ok: false, error: '名字审核未通过或服务不可用，请稍后重试' };

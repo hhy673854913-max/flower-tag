@@ -6,7 +6,11 @@
     "pages/my/my",
     "pages/confirm/confirm",
     "pages/detail/detail",
-    "pages/tags/tags"
+    "pages/tags/tags",
+    "pages/portfolio-manage/portfolio-manage",
+    "pages/portfolio-share/portfolio-share",
+    "pages/feedback/feedback",
+    "pages/about/about"
   ],
   "window": {
     "navigationBarBackgroundColor": "#ffffff",

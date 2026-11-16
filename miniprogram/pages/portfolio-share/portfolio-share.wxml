@@ -1,0 +1,52 @@
+<view class="portfolio-page">
+  <view class="top-line">
+    <view class="text-link" bindtap="goBack">返回</view>
+    <view class="text-link" bindtap="goHome">进入花艺图库</view>
+  </view>
+
+  <view class="portfolio-heading" wx:if="{{!invalid && mode}}">
+    <view class="eyebrow">{{mode === 'all' ? '全部作品' : '精选作品'}} · 只读作品集</view>
+    <view class="portfolio-title">{{title || name + '的花艺作品集'}}</view>
+    <view class="author">作者 · {{name}}</view>
+    <text class="portfolio-description" wx:if="{{description}}">{{description}}</text>
+    <view class="heading-bottom">
+      <view class="count">当前 {{total}} 件作品</view>
+      <button class="share-action" wx:if="{{valid && !loading}}" open-type="share">分享给好友</button>
+    </view>
+  </view>
+
+  <view class="state-panel" wx:if="{{invalid}}">
+    <view class="state-title">这份作品集暂不可查看</view>
+    <view class="state-note">{{loadError}}</view>
+    <view class="retry" bindtap="refresh">重新检查</view>
+  </view>
+  <view class="state-panel" wx:elif="{{loading && !records.length}}">
+    <view class="state-title">正在打开作品集</view>
+    <view class="state-note">读取作品与分享状态…</view>
+  </view>
+  <view class="status-banner" wx:elif="{{loading}}">正在刷新作品与分享状态…</view>
+  <view class="status-banner retry" wx:if="{{loadError && !invalid}}" bindtap="refresh">{{loadError}}</view>
+
+  <view class="works-grid" wx:if="{{records.length && !invalid}}">
+    <view class="work-card {{!valid ? 'unconfirmed' : ''}}" wx:for="{{records}}" wx:key="_id" data-id="{{item._id}}" bindtap="openRecord">
+      <image wx:if="{{item.thumbnailUrl && !item.imageFailed}}" class="work-image" src="{{item.thumbnailUrl}}" mode="aspectFill" show-menu-by-longpress="{{false}}" data-id="{{item._id}}" data-url="{{item.thumbnailUrl}}" binderror="onImageError" />
+      <view class="image-state" wx:else>图片暂不可用</view>
+      <view class="work-caption">{{item.caption}}</view>
+      <view class="work-colors" wx:if="{{item.colors.length}}">
+        <text wx:for="{{item.colors}}" wx:for-item="color" wx:key="*this">{{index ? ' / ' : ''}}{{color}}</text>
+      </view>
+    </view>
+  </view>
+  <view class="state-panel" wx:elif="{{valid && !loading}}">
+    <view class="state-title">作品集里还没有作品</view>
+    <view class="state-note">作品更新后，可下拉刷新查看</view>
+  </view>
+
+  <view class="list-footer" wx:if="{{records.length && !invalid && (valid || pageError)}}">
+    <view wx:if="{{loadingMore}}">正在读取更多作品…</view>
+    <view class="retry" wx:elif="{{pageError}}" bindtap="retryPage">{{pageError}}</view>
+    <view class="retry" wx:elif="{{hasMore}}" bindtap="loadMore">查看更多作品</view>
+    <view wx:else>已展示 {{records.length}} 件作品</view>
+  </view>
+  <view class="readonly-note" wx:if="{{valid}}">仅供欣赏 · 作品由花艺师分享</view>
+</view>

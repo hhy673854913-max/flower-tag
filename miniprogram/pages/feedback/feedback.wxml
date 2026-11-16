@@ -1,0 +1,68 @@
+<view class="page feedback-page">
+  <view class="heading">
+    <view class="eyebrow">花艺图库 · 意见反馈</view>
+    <view class="title">{{feedbackId ? '谢谢你的反馈' : '把使用感受告诉我们'}}</view>
+    <view class="intro">{{feedbackId ? '每一份真实的使用感受，都值得认真记录。' : '遇到的问题、想要的功能，或一次识别的偏差。'}}</view>
+  </view>
+
+  <view class="panel success-panel" wx:if="{{feedbackId}}">
+    <view class="success-seal">已收到</view>
+    <view class="success-title">反馈已保存</view>
+    <view class="muted">我们会参考这份反馈排查问题、完善体验。你无需重复提交同一内容。</view>
+    <view class="receipt">
+      <view class="receipt-label">反馈编号</view>
+      <text class="receipt-id" selectable>{{feedbackId}}</text>
+    </view>
+    <button class="action primary" bindtap="goMy">返回我的</button>
+    <button class="action secondary" bindtap="continueFeedback">继续反馈</button>
+  </view>
+
+  <block wx:else>
+    <view class="panel form-panel">
+      <view class="field">
+        <view class="field-heading">
+          <view class="field-title"><text class="field-number">01</text>反馈类型</view>
+          <text class="field-tag">必选</text>
+        </view>
+        <picker mode="selector" range="{{types}}" range-key="label" value="{{typeIndex}}" disabled="{{confirming || submitting}}" bindchange="changeType">
+          <view class="picker-value {{typeIndex < 0 ? 'placeholder' : ''}}">
+            <text>{{typeIndex < 0 ? '请选择最贴近的类型' : types[typeIndex].label}}</text>
+            <view class="picker-arrow"></view>
+          </view>
+        </picker>
+      </view>
+
+      <view class="field content-field">
+        <view class="field-heading">
+          <view class="field-title"><text class="field-number">02</text>反馈内容</view>
+          <text class="field-tag">必填</text>
+        </view>
+        <textarea class="content-input" value="{{content}}" maxlength="-1" disabled="{{confirming || submitting}}" data-field="content" bindinput="inputField" placeholder="请描述你的问题或建议。&#10;例如：在哪个页面、做了什么操作、出现了什么结果…" placeholder-class="placeholder" auto-height show-confirm-bar="{{false}}" />
+        <view class="content-bottom">
+          <text class="field-hint">支持换行，字数不含首尾空白</text>
+          <text class="field-count {{contentCount > 1000 ? 'over-limit' : ''}}">{{contentCount}} / 1000</text>
+        </view>
+      </view>
+
+      <view class="field phone-field">
+        <view class="field-heading">
+          <view class="field-title"><text class="field-number">03</text>联系手机号</view>
+          <text class="field-tag optional">选填</text>
+        </view>
+        <input class="phone-input" type="text" value="{{phone}}" maxlength="-1" disabled="{{confirming || submitting}}" data-field="phone" bindinput="inputField" placeholder="11 位大陆手机号，可留空" placeholder-class="placeholder" />
+        <view class="field-hint phone-hint">仅用于必要联系，不会自动读取你的手机号。</view>
+      </view>
+    </view>
+
+    <view class="privacy-note">
+      <view class="note-title">只用于排查，不公开展示</view>
+      <view class="note-copy">提交时会随附用户标识、账号状态及基础版本、设备信息，帮助定位问题。请勿填写密码、校验码或其他无关敏感信息。</view>
+    </view>
+    <view class="status-note" wx:if="{{statusNote}}" role="status">{{statusNote}}</view>
+    <button class="check-action" wx:if="{{statusNote}}" bindtap="refreshSubmission">刷新等待状态</button>
+    <view class="error-note" wx:if="{{error}}" role="alert">{{error}}</view>
+    <button class="action primary submit-action" disabled="{{confirming || submitting}}" loading="{{submitting}}" bindtap="submit">{{submitting ? '正在提交' : confirming ? '等待确认' : '提交反馈'}}</button>
+    <view class="submit-hint">提交前会再次请你确认；失败时保留本页输入。</view>
+  </block>
+  <view class="error-note" wx:if="{{feedbackId && error}}" role="alert">{{error}}</view>
+</view>

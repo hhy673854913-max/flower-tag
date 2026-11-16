@@ -1,0 +1,119 @@
+<view class="page portfolio-page">
+  <view class="heading">
+    <view class="eyebrow">我的作品档案 · 分享管理</view>
+    <view class="title">让花艺被看见</view>
+    <view class="intro">独立管理作品集链接，不改变单件分享状态。</view>
+  </view>
+
+  <view class="panel state-panel" wx:if="{{accessLoading}}">
+    <view class="state-title">正在确认你的空间</view>
+    <view class="muted">读取账号状态与作品集链接…</view>
+  </view>
+  <view class="panel state-panel" wx:elif="{{accessError}}">
+    <view class="state-title">暂时无法确认账号</view>
+    <view class="muted">{{accessError}}</view>
+    <button class="action secondary" bindtap="refreshAccess">重新检查</button>
+    <button class="text-action" bindtap="goMy">前往我的</button>
+  </view>
+  <view class="panel state-panel" wx:elif="{{!canManage}}">
+    <view class="state-title">{{cleanupPending ? '旧作品正在清理' : '作品空间尚未开通或已失效'}}</view>
+    <view class="muted">有效花艺师与管理员可管理本人的作品集。请前往「我的」查看账号状态。</view>
+    <button class="action secondary" bindtap="goMy">前往我的</button>
+  </view>
+  <block wx:else>
+    <view class="share-options" wx:if="{{!selecting}}">
+      <view class="panel all-panel">
+        <view class="option-top"><text class="eyebrow">持续更新</text><text class="scope-badge">全部作品</text></view>
+        <view class="option-title">{{name}}的完整作品集</view>
+        <view class="muted">全部现有作品与附加图，后续新作品自动加入。未开启单件分享的作品也会展示。</view>
+        <button class="action primary" disabled="{{busy}}" loading="{{creating === 'all'}}" bindtap="createAll">分享全部作品</button>
+      </view>
+      <view class="panel selected-panel">
+        <view class="option-top"><text class="eyebrow">亲自挑选</text><text class="scope-badge quiet">精选作品</text></view>
+        <view class="option-title">为这次分享，选一组作品</view>
+        <view class="muted">只展示你选中的作品与附加图。每次创建独立链接，新增作品不会自动加入。</view>
+        <button class="action secondary" disabled="{{busy}}" bindtap="startSelecting">{{selectedCount ? '继续挑选 · 已选 ' + selectedCount + ' 件' : '挑选作品分享'}}</button>
+      </view>
+    </view>
+
+    <view class="selection-section" wx:else>
+      <view class="section-top">
+        <view><view class="eyebrow">仅本人作品</view><view class="section-title">挑选精选作品</view></view>
+        <button class="text-action" disabled="{{busy}}" bindtap="closeSelecting">收起</button>
+      </view>
+      <view class="selection-note">已选 {{selectedCount}} 件 · 翻页与重试会保留选择</view>
+      <view class="capacity-note">一次最多分享1000件作品，数量过多时可分组创建精选链接。</view>
+      <view class="work-grid">
+        <view class="work-card {{item.selected ? 'is-selected' : ''}}" wx:for="{{works}}" wx:key="_id" data-id="{{item._id}}" bindtap="toggleWork">
+          <view class="image-wrap">
+            <image wx:if="{{item.url && !item.imageFailed}}" class="work-image" src="{{item.url}}" mode="aspectFill" lazy-load data-id="{{item._id}}" data-url="{{item.url}}" binderror="imageError" />
+            <view class="image-failure" wx:else>
+              <view>{{item.fileID ? '图片加载失败' : '暂无可用图片'}}</view>
+              <button wx:if="{{item.fileID}}" class="image-retry" disabled="{{busy || item.imageLoading}}" data-id="{{item._id}}" catchtap="retryImage">{{item.imageLoading ? '重试中…' : '重试图片'}}</button>
+            </view>
+            <view class="selection-mark">{{item.selected ? '已选' : '选择'}}</view>
+          </view>
+          <view class="work-desc">{{item.desc}}</view>
+        </view>
+      </view>
+      <view class="list-state" wx:if="{{worksLoading}}">正在加载本人作品…</view>
+      <view class="list-state" wx:elif="{{worksError}}">
+        <view>{{worksError}}</view>
+        <button class="text-action" disabled="{{busy}}" bindtap="retryWorks">重试作品加载</button>
+      </view>
+      <view class="list-state" wx:elif="{{!works.length}}">还没有作品，上传后再来挑选。</view>
+      <button class="load-more" wx:elif="{{worksHasMore}}" disabled="{{busy}}" bindtap="loadMoreWorks">加载更多作品</button>
+      <view class="list-state" wx:else>已加载全部本人作品</view>
+      <view class="selection-bar">
+        <view><view class="selection-count">已选 {{selectedCount}} 件</view><view class="selection-hint">仅分享这些作品</view></view>
+        <button class="action primary" disabled="{{busy || !selectedCount}}" loading="{{creating === 'selected'}}" bindtap="createSelected">创建精选链接</button>
+      </view>
+    </view>
+
+    <view class="links-section">
+      <view class="section-top">
+        <view><view class="eyebrow">独立链接</view><view class="section-title">已创建的作品集</view></view>
+        <button class="text-action" disabled="{{busy || linksLoading}}" bindtap="refreshAccess">刷新</button>
+      </view>
+      <view class="panel link-card" wx:for="{{links}}" wx:key="id">
+        <view class="link-top"><text class="link-title">{{item.displayTitle}}</text><text class="link-status {{!item.enabled ? 'stopped' : ''}}">{{item.enabled ? '分享中' : '已失效'}}</text></view>
+        <text class="link-description" wx:if="{{item.description}}">{{item.description}}</text>
+        <view class="link-scope"><text class="scope-badge quiet">{{item.modeLabel}}</text></view>
+        <view class="link-date">创建于 {{item.date}}</view>
+        <view class="link-note">{{item.mode === 'all' ? '后续新增作品自动展示' : '仅展示创建时选中的作品'}}</view>
+        <view class="metadata-editor" wx:if="{{item.enabled && editingId === item.id}}">
+          <view class="editor-heading">给这组作品写一段介绍</view>
+          <view class="editor-hint">只更新此链接的文字，作品范围与分享状态不变。</view>
+          <view class="field-heading"><text class="field-label">作品集标题</text><text class="field-count {{titleCount > 40 ? 'over-limit' : ''}}">{{titleCount}} / 40</text></view>
+          <input class="metadata-input" value="{{editTitle}}" maxlength="-1" disabled="{{busy}}" data-field="title" bindinput="inputMetadata" placeholder="为这组作品起个名字" placeholder-class="metadata-placeholder" />
+          <view class="field-heading description-heading"><text class="field-label">作品集描述 <text class="optional-label">选填</text></text><text class="field-count {{descriptionCount > 300 ? 'over-limit' : ''}}">{{descriptionCount}} / 300</text></view>
+          <textarea class="metadata-description" value="{{editDescription}}" maxlength="-1" disabled="{{busy}}" data-field="description" bindinput="inputMetadata" placeholder="写下灵感、风格或想传递的心意…" placeholder-class="metadata-placeholder" auto-height fixed="{{false}}" />
+          <view class="editor-hint">标题为单行文字；描述支持换行，也可以清空。字数不含首尾空白。</view>
+          <view class="editor-error" wx:if="{{editError}}" role="alert">{{editError}}</view>
+          <view class="editor-actions">
+            <button class="action secondary" disabled="{{busy}}" bindtap="cancelMetadata">取消</button>
+            <button class="action primary" disabled="{{busy}}" loading="{{savingMetadata}}" bindtap="saveMetadata">{{savingMetadata ? '正在保存' : '保存文字'}}</button>
+          </view>
+        </view>
+        <button class="edit-entry" wx:elif="{{item.enabled && item.token}}" disabled="{{busy}}" data-id="{{item.id}}" bindtap="editLink">编辑标题与描述 <text class="edit-entry-mark">›</text></button>
+        <view class="link-actions" wx:if="{{item.enabled}}">
+          <button class="link-action" disabled="{{busy}}" data-id="{{item.id}}" bindtap="openLink">{{openingId === item.id ? '校验中…' : '预览'}}</button>
+          <button class="link-action" disabled="{{busy}}" data-id="{{item.id}}" bindtap="openLink">再次分享</button>
+          <button class="link-action stop" disabled="{{busy}}" data-id="{{item.id}}" bindtap="stopLink">{{stoppingId === item.id ? '处理中…' : '停止分享'}}</button>
+        </view>
+        <view class="expired-note" wx:else>此链接不能再打开或分享。需要分享时请创建新链接。</view>
+      </view>
+      <view class="list-state" wx:if="{{linksLoading}}">正在读取作品集链接…</view>
+      <view class="list-state" wx:elif="{{linksError}}">
+        <view>{{linksError}}</view>
+        <button class="text-action" disabled="{{busy}}" bindtap="retryLinks">重试链接加载</button>
+      </view>
+      <view class="panel state-panel" wx:elif="{{!links.length}}">
+        <view class="state-title">还没有分享链接</view>
+        <view class="muted">作品集默认不对外展示。确认创建后，才可通过链接查看。</view>
+      </view>
+      <button class="load-more" wx:elif="{{linksHasMore}}" disabled="{{busy}}" bindtap="loadMoreLinks">加载更多链接</button>
+      <view class="footer-note">预览与再次分享均前往有效的只读作品集页，使用该页的「分享给好友」。停止一个链接不会影响其他作品集或单件分享。</view>
+    </view>
+  </block>
+</view>

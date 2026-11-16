@@ -34,6 +34,24 @@ async function revokeFlorist(id) { return accessGate('revoke', { id }); }
 async function cleanupFlorist(id) { return accessGate('cleanup', { id }); }
 async function shareRecord(id, enabled) { return accessGate('shareRecord', { id, enabled }); }
 async function readSharedRecord(token) { return accessGate('readShared', { token }); }
+async function submitFeedback(payload = {}) {
+  const { type, content, phone, requestId, diagnostics } = payload;
+  return accessGate('submitFeedback', { type, content, phone, requestId, diagnostics });
+}
+async function createPortfolioShare(mode, recordIds) {
+  return accessGate('createPortfolioShare', { mode, recordIds });
+}
+async function listPortfolioShares(cursor) { return accessGate('listPortfolioShares', { cursor }); }
+async function stopPortfolioShare(id) { return accessGate('stopPortfolioShare', { id }); }
+async function updatePortfolioMetadata(id, title, description) {
+  return accessGate('updatePortfolioMetadata', { id, title, description });
+}
+async function readPortfolioShare(token, cursor, limit = 20) {
+  return accessGate('readPortfolioShare', { token, cursor, limit });
+}
+async function readPortfolioRecord(token, recordId, original = false) {
+  return accessGate('readPortfolioRecord', { token, recordId, original });
+}
 
 async function uploadImage(filePath, thumbnail, onProgress) {
   const status = await requireAccess();
@@ -121,6 +139,8 @@ async function removeTag(id) { return accessGate('removeTag', { id }); }
 module.exports = {
   getAccessStatus, requireAccess, redeemAccessCode, listAccessRecords, updateAccessName,
   revokeFlorist, cleanupFlorist, shareRecord, readSharedRecord,
+  submitFeedback,
+  createPortfolioShare, listPortfolioShares, stopPortfolioShare, updatePortfolioMetadata, readPortfolioShare, readPortfolioRecord,
   uploadWorkImage, uploadThumbImage, deleteCloudFiles, getTempUrls, analyzeImage, imgSecCheck,
   addRecord, getRecord, updateRecordTags, updateRecordExtras, removeRecord,
   countRecords, listRecords, fetchAllRecords, bumpTagUsage, listTags, addFlowerTag, removeTag

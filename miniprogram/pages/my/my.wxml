@@ -58,6 +58,10 @@
     <view class="retry-action" bindtap="saveName">{{savingName ? '保存中…' : '保存名字'}}</view>
   </view>
   <view class="menu" wx:if="{{activated}}">
+    <view class="menu-item" wx:if="{{!accessLoading && !accessError && !cleanupPending}}" bindtap="goPortfolio">
+      <view class="menu-left"><view>作品集分享</view><view class="menu-sub">分享全部作品或精选作品，管理已有链接</view></view>
+      <text class="arrow">›</text>
+    </view>
     <view class="menu-item" bindtap="goTags">
       <view class="menu-left"><view>标签管理</view><view class="menu-sub">整理常用花材与标签</view></view>
       <text class="arrow">›</text>
@@ -101,6 +105,10 @@
   </view>
 
   <view class="menu secondary-menu">
+    <view class="menu-item" bindtap="goFeedback">
+      <view class="menu-left"><view>意见反馈</view><view class="menu-sub">告诉我们遇到的问题与建议</view></view>
+      <text class="arrow">›</text>
+    </view>
     <view class="menu-item" bindtap="about">
       <text>关于与隐私说明</text><text class="arrow">›</text>
     </view>
