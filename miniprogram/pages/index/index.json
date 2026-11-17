@@ -1,5 +1,6 @@
 {
   "navigationBarTitleText": "花艺图库",
+  "usingComponents": { "welcome-guide": "/components/welcome-guide/index" },
   "enablePullDownRefresh": true,
   "onReachBottomDistance": 100
 }

@@ -1,4 +1,5 @@
 <view class="page page-tab">
+  <welcome-guide id="welcome-guide" bindactivate="onWelcomeActivate" />
   <view class="page-heading">
     <view class="eyebrow">作品入库</view>
     <view class="page-title">上传作品</view>
@@ -39,6 +40,7 @@
     <view class="progress-summary">
       共 {{items.length}} 张 · 完成 {{doneCount}}<text wx:if="{{failCount}}"> · 失败 {{failCount}}</text>
       <text class="clear" wx:if="{{!running}}" bindtap="clearList">清空</text>
+      <text class="clear" wx:else bindtap="cancelUpload">取消上传</text>
     </view>
 
     <view class="item" wx:for="{{items}}" wx:key="index">

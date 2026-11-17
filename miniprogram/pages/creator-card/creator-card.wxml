@@ -1,0 +1,22 @@
+<view class="card-page">
+  <view class="eyebrow">花艺图库 · 创作者</view>
+  <view class="creator-sheet" wx:if="{{valid}}">
+    <view class="name-mark">花</view>
+    <view class="creator-name">{{name}}</view>
+    <view class="creator-caption">以花记录每一个美好时刻</view>
+    <view class="work-total"><text>{{total}}</text> 件作品</view>
+    <view class="scope-label">{{scope}}</view>
+    <button class="btn-primary card-action" bindtap="openWorks">欣赏作品</button>
+    <button class="card-link" wx:if="{{publicView}}" open-type="share">分享名片</button>
+    <view wx:else class="own-actions">
+      <view bindtap="editName">修改名字</view>
+      <view bindtap="manageShares">管理作品集分享</view>
+    </view>
+  </view>
+  <view class="card-state" wx:elif="{{loading}}">正在读取名片…</view>
+  <view class="card-state" wx:else>
+    <view>{{error || '名片暂不可访问'}}</view>
+    <view class="card-link" bindtap="refresh">重新检查</view>
+  </view>
+  <view class="card-note" wx:if="{{valid && publicView}}">作品范围由创作者授权，分享停止后名片同步失效</view>
+</view>

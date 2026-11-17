@@ -1,0 +1,16 @@
+.card-page { padding: 48rpx 36rpx calc(60rpx + env(safe-area-inset-bottom)); min-height: 100vh; box-sizing: border-box; }
+.eyebrow { font-size: 23rpx; color: #648170; letter-spacing: 3rpx; margin-bottom: 32rpx; }
+.creator-sheet { background: #fffdf9; border: 1rpx solid #dde5db; border-radius: 28rpx; padding: 60rpx 36rpx 36rpx; text-align: center; }
+.name-mark { width: 108rpx; height: 108rpx; line-height: 108rpx; margin: 0 auto 32rpx; border-radius: 50%; background: #e5eee2; font-size: 48rpx; color: #47754f; }
+.creator-name { font-size: 44rpx; font-weight: 600; color: #27392c; line-height: 1.5; overflow-wrap: break-word; word-break: break-all; }
+.creator-caption { font-size: 25rpx; color: #899589; margin: 20rpx 0 50rpx; line-height: 1.8; }
+.work-total { color: #648170; font-size: 25rpx; }
+.work-total text { color: #27392c; font-size: 56rpx; padding-right: 8rpx; }
+.scope-label { font-size: 24rpx; color: #899589; margin: 12rpx 0 36rpx; }
+.card-action { margin: 0; font-size: 28rpx; line-height: 1.8; padding: 20rpx; }
+.card-action::after, .card-link::after { border: none; }
+.card-link { background: transparent; color: #47754f; font-size: 26rpx; padding: 24rpx 0; line-height: 1.8; }
+.own-actions { display: flex; justify-content: space-around; color: #648170; font-size: 24rpx; padding-top: 30rpx; }
+.own-actions view { padding: 12rpx; }
+.card-state { padding: 100rpx 20rpx; text-align: center; color: #648170; font-size: 28rpx; line-height: 1.8; }
+.card-note { font-size: 23rpx; line-height: 1.8; color: #899589; margin: 28rpx 12rpx; text-align: center; }

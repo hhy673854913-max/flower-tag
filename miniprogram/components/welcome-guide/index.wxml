@@ -1,0 +1,32 @@
+<view wx:if="{{visible}}" class="welcome-mask" catchtap="stopTouch" catchtouchmove="stopTouch">
+  <view class="welcome-card" role="dialog" aria-modal="{{true}}" aria-label="欢迎来到花艺图库">
+    <view class="welcome-header">
+      <view class="welcome-rule"></view>
+      <view class="welcome-title">欢迎来到花艺图库</view>
+      <view class="welcome-intro">把花艺作品整理成随时能找到的灵感库。</view>
+    </view>
+    <scroll-view class="welcome-content" scroll-y="{{true}}" enhanced="{{true}}" show-scrollbar="{{false}}" catchtouchmove="stopTouch">
+      <view class="welcome-step">
+        <text class="welcome-number">01</text>
+        <view class="welcome-copy"><text class="welcome-label">开通使用</text><text>：到「我的」填写名字和校验码，开通花艺师身份。</text></view>
+      </view>
+      <view class="welcome-step">
+        <text class="welcome-number">02</text>
+        <view class="welcome-copy"><text class="welcome-label">上传打标</text><text>：上传作品照片，AI整理颜色、色系、花材、种类、风格和用途，校对后保存。</text></view>
+      </view>
+      <view class="welcome-step">
+        <text class="welcome-number">03</text>
+        <view class="welcome-copy"><text class="welcome-label">快速找图</text><text>：在「作品墙」查看作品，在「筛选」按标签组合查找。</text></view>
+      </view>
+      <view class="welcome-step">
+        <text class="welcome-number">04</text>
+        <view class="welcome-copy"><text class="welcome-label">分享作品</text><text>：分享单件作品或创建作品集，也可以随时停止分享。</text></view>
+      </view>
+      <view class="welcome-note">你的作品按账号管理，分享链接只展示授权内容。</view>
+    </scroll-view>
+    <view class="welcome-actions">
+      <button class="welcome-primary" catchtap="activate">去开通</button>
+      <button class="welcome-secondary" catchtap="browse">先看看</button>
+    </view>
+  </view>
+</view>

@@ -5,7 +5,7 @@
     <view class="page-intro">查看作品、标签与上传设置</view>
   </view>
 
-  <view class="access-card" wx:if="{{accessLoading}}">
+  <view class="access-card" wx:if="{{accessLoading && !activated}}">
     <view class="card-label">账户状态</view>
     <view class="access-copy">正在读取你的空间…</view>
   </view>
@@ -17,7 +17,7 @@
     <view class="retry-action" bindtap="loadAccess">重新检查</view>
   </view>
 
-  <view class="access-card" wx:elif="{{!activated}}">
+  <view id="activation-area" class="access-card" wx:elif="{{!activated}}">
     <view class="card-label">开始使用</view>
     <view class="access-title">用校验码开启作品空间</view>
     <view class="access-copy">输入管理员提供的校验码，即可上传作品、整理标签。</view>
@@ -43,6 +43,9 @@
     <view class="stat-main">
       <text class="stat-num">{{total}}</text><text class="stat-unit">件作品</text>
     </view>
+    <view class="access-copy" wx:if="{{statsLoading}}">正在统计作品…</view>
+    <view class="access-copy" wx:if="{{accessLoading}}">正在确认作品空间…</view>
+    <view class="retry-action" wx:elif="{{statsError}}" bindtap="loadStats">{{statsError}}</view>
     <view class="stat-grid">
       <view class="stat-item"><view class="v">{{topColor}}</view><view class="k">常用颜色</view></view>
       <view class="stat-item"><view class="v">{{topFlower}}</view><view class="k">常用花材</view></view>
@@ -58,6 +61,10 @@
     <view class="retry-action" bindtap="saveName">{{savingName ? '保存中…' : '保存名字'}}</view>
   </view>
   <view class="menu" wx:if="{{activated}}">
+    <view class="menu-item" wx:if="{{!accessLoading && !accessError && !cleanupPending}}" bindtap="goCard">
+      <view class="menu-left"><view>我的花艺名片</view><view class="menu-sub">查看名字与作品，连接作品集分享</view></view>
+      <text class="arrow">›</text>
+    </view>
     <view class="menu-item" wx:if="{{!accessLoading && !accessError && !cleanupPending}}" bindtap="goPortfolio">
       <view class="menu-left"><view>作品集分享</view><view class="menu-sub">分享全部作品或精选作品，管理已有链接</view></view>
       <text class="arrow">›</text>
@@ -85,7 +92,7 @@
         <view><view class="card-label">账号管理</view><view class="admin-title">花艺师列表</view></view>
         <view class="refresh-link" bindtap="refreshAccessRecords">刷新</view>
       </view>
-      <view class="admin-empty" wx:if="{{recordsError}}">{{recordsError}}</view>
+      <view class="retry-action" wx:if="{{recordsError}}" bindtap="retryAccessRecords">{{recordsError}}，点击重试</view>
       <view class="admin-empty" wx:if="{{recordsLoading}}">正在加载列表…</view>
       <view class="admin-empty" wx:if="{{!recordsLoading && !accessRecords.length && !recordsError}}">暂无花艺师</view>
       <view class="admin-empty" wx:if="{{revokingId}}">{{revokeProgress}}</view>
@@ -97,7 +104,7 @@
             <view class="admin-date">成为花艺师：{{item.date}}</view>
             <view class="admin-date" wx:if="{{item.cleanupPending}}">权限已撤销，作品待清理</view>
           </view>
-          <button class="revoke-button" disabled="{{!!revokingId}}" data-id="{{item.id}}" bindtap="revokeFlorist">{{item.cleanupPending ? '继续清理' : '撤销权限'}}</button>
+          <button class="revoke-button" disabled="{{!!revokingId || accessLoading || !!accessError || cleanupPending}}" data-id="{{item.id}}" bindtap="revokeFlorist">{{item.cleanupPending ? '继续清理' : '撤销权限'}}</button>
         </view>
       </block>
       <view class="retry-action" wx:if="{{recordsHasMore}}" bindtap="loadMoreFlorists">加载更多花艺师</view>
@@ -113,4 +120,5 @@
       <text>关于与隐私说明</text><text class="arrow">›</text>
     </view>
   </view>
+  <welcome-guide id="welcome-guide" bindactivate="onWelcomeActivate" />
 </view>

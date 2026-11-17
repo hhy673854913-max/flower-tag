@@ -2,6 +2,13 @@
   <view bindtap="goBack">返回</view>
   <view bindtap="goHome">进入花艺图库</view>
 </view>
+<view class="extras-progress" wx:if="{{extrasBusy}}">
+  <view>{{extrasMessage}}</view>
+  <view class="extras-actions">
+    <view class="btn-ghost" wx:if="{{extrasUnknown}}" bindtap="checkExtraResult">核对保存结果</view>
+    <view class="btn-ghost" bindtap="cancelExtras">取消附加图</view>
+  </view>
+</view>
 <view class="page {{shared ? 'readonly-page' : ''}}" wx:if="{{record}}">
   <view class="share-info" wx:if="{{shared}}">{{authorName}}的花艺作品 · {{portfolio ? '作品集授权' : '单件分享'}} · 只读展示</view>
   <swiper class="hero-swiper" indicator-dots="{{true}}" circular="{{false}}" autoplay="{{false}}" bindchange="onSwiperChange">
@@ -19,7 +26,7 @@
 
   <view class="hero-actions">
     <view class="btn-ghost orig-btn" bindtap="previewOriginal" data-idx="{{currentSwiperIdx || 0}}">{{loadingOriginal ? '加载中…' : '查看原图'}}</view>
-    <view class="btn-ghost orig-btn" bindtap="addExtraImages" wx:if="{{canManage && !editing && record && (!record.extraFiles || record.extraFiles.length < 8)}}">添加附加图</view>
+    <view class="btn-ghost orig-btn" bindtap="addExtraImages" wx:if="{{canManage && !editing && !extrasBusy && record && (!record.extraFiles || record.extraFiles.length < 8)}}">添加附加图</view>
   </view>
 
   <view class="edit-tip" wx:if="{{editing}}">编辑模式：点选修改标签，花材长按可调整角色</view>
@@ -57,7 +64,7 @@
     <view class="none-flower" wx:if="{{!record[role.key] || !record[role.key].length}}">无</view>
   </view>
 
-  <view class="action-row" wx:if="{{canManage && !editing}}">
+  <view class="action-row" wx:if="{{canManage && !editing && !extrasBusy}}">
     <view class="btn-ghost act" bindtap="toggleEdit">编辑标签</view>
     <view class="btn-danger act" bindtap="remove">删除</view>
   </view>
@@ -65,7 +72,7 @@
     <view class="btn-ghost act" bindtap="toggleEdit">取消</view>
     <view class="btn-primary act {{saving ? 'disabled' : ''}}" bindtap="save">保存修改</view>
   </view>
-  <view class="share-panel" wx:if="{{canManage && !editing}}">
+  <view class="share-panel" wx:if="{{canManage && !editing && !extrasBusy}}">
     <view class="btn-ghost" bindtap="setSharing">{{shareBusy ? '处理中…' : shareToken ? '停止单件分享' : '开启单件分享'}}</view>
     <button class="btn-primary share-button" wx:if="{{shareToken}}" open-type="share">分享给好友</button>
   </view>

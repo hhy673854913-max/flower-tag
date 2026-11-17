@@ -1,3 +1,5 @@
 {
-  "navigationBarTitleText": "标签筛选"
+  "navigationBarTitleText": "标签筛选",
+  "enablePullDownRefresh": true,
+  "usingComponents": { "welcome-guide": "/components/welcome-guide/index" }
 }

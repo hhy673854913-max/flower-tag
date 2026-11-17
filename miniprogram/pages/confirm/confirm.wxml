@@ -1,5 +1,5 @@
 <view class="confirm-page" wx:if="{{cur}}">
-  <swiper class="swiper" current="{{current}}" bindchange="onSwiperChange">
+  <swiper class="swiper" current="{{current}}" disable-touch="{{saving || unknown}}" bindchange="onSwiperChange">
     <swiper-item wx:for="{{items}}" wx:key="fileID">
       <scroll-view scroll-y class="swiper-scroll">
         <image class="preview" src="{{item.tempPath}}" mode="aspectFit" />
@@ -53,6 +53,9 @@
             <view class="btn-primary act" bindtap="saveCurrent">保存本张</view>
           </view>
           <view class="btn-primary {{saving ? 'disabled' : ''}} save-all" bindtap="saveAll">全部保存（剩余 {{remaining}}）</view>
+          <view wx:if="{{unknown}}" class="btn-ghost save-all" bindtap="checkSaveResult">保存结果待确认 · 点击核对</view>
+          <view wx:if="{{!finished}}" class="btn-ghost save-all" bindtap="abandonRemaining">放弃未保存</view>
+          <view wx:else class="btn-ghost save-all" bindtap="returnToWall">返回作品墙</view>
           <view class="bottom-gap"></view>
         </view>
       </scroll-view>

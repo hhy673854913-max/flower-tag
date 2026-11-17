@@ -1,0 +1,4 @@
+{
+  "read": false,
+  "write": "auth != null && resource.openid == auth.openid && (/^userFiles\\/[a-f0-9]+\\/works\\/uploads\\//.test(resource.path) || /^userFiles\\/[a-f0-9]+\\/thumbs\\/uploads\\//.test(resource.path))"
+}

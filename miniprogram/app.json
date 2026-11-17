@@ -10,7 +10,8 @@
     "pages/portfolio-manage/portfolio-manage",
     "pages/portfolio-share/portfolio-share",
     "pages/feedback/feedback",
-    "pages/about/about"
+    "pages/about/about",
+    "pages/creator-card/creator-card"
   ],
   "window": {
     "navigationBarBackgroundColor": "#ffffff",

@@ -60,23 +60,7 @@ button::after { border: none; }
 .link-action[disabled] { background: transparent; color: #9aa59a; }
 .expired-note { margin-top: 24rpx; color: #969e91; font-size: 23rpx; line-height: 1.7; }
 .footer-note { color: #89968a; font-size: 22rpx; line-height: 1.8; margin: 26rpx 8rpx 0; }
-.selection-note { color: #69776c; font-size: 24rpx; margin: 0 0 24rpx; }
-.capacity-note { color: #89968a; font-size: 22rpx; line-height: 1.7; margin: -10rpx 0 24rpx; }
-.work-grid { display: flex; flex-wrap: wrap; gap: 20rpx; }
-.work-card { width: calc((100% - 20rpx) / 2); box-sizing: border-box; border: 2rpx solid #e6e9df; border-radius: 18rpx; overflow: hidden; background: #fffdf9; }
-.work-card.is-selected { border-color: #2d6543; background: #edf4e9; }
-.image-wrap { position: relative; height: 300rpx; background: #e9efe6; }
-.work-image { width: 100%; height: 100%; display: block; }
-.selection-mark { position: absolute; right: 14rpx; top: 14rpx; padding: 8rpx 14rpx; border-radius: 22rpx; background: #fffdf9; color: #687c69; font-size: 21rpx; border: 1rpx solid #dce6d7; }
-.is-selected .selection-mark { background: #2d6543; color: #fff; border-color: #2d6543; }
-.work-desc { font-size: 23rpx; line-height: 1.6; padding: 18rpx 16rpx; color: #596d5e; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.image-failure { height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; color: #7b887d; font-size: 23rpx; }
-.image-retry { margin: 14rpx 0 0; padding: 8rpx 18rpx; color: #2d6543; background: #fffdf9; border-radius: 12rpx; font-size: 22rpx; line-height: 1.8; }
 .list-state { text-align: center; color: #8b988b; font-size: 24rpx; line-height: 1.8; padding: 32rpx 10rpx; word-break: break-all; }
 .list-state .text-action { margin-top: 12rpx; }
 .load-more { background: transparent; color: #2d6543; border: 1rpx solid #dce6d7; border-radius: 14rpx; font-size: 25rpx; padding: 16rpx; line-height: 1.8; margin-top: 24rpx; }
 .load-more[disabled] { color: #98ab9b; background: transparent; }
-.selection-bar { position: sticky; bottom: calc(20rpx + env(safe-area-inset-bottom)); display: flex; align-items: center; justify-content: space-between; gap: 20rpx; padding: 24rpx; margin-top: 20rpx; background: #fffdf9; border: 1rpx solid #dce6d7; border-radius: 20rpx; box-shadow: 0 10rpx 30rpx rgba(39, 57, 44, 0.06); z-index: 2; }
-.selection-count { color: #304638; font-size: 28rpx; font-weight: 600; }
-.selection-hint { color: #8b988b; font-size: 21rpx; margin-top: 8rpx; }
-.selection-bar .action { margin: 0; font-size: 25rpx; padding: 22rpx; }

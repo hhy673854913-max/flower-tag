@@ -113,10 +113,9 @@ page {
 .grid .cell-tags {
   padding: 10rpx 14rpx;
   font-size: 22rpx;
+  line-height: 32rpx;
   color: #6b736b;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  word-break: break-all;
 }
 
 .empty {

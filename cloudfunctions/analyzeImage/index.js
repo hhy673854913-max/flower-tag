@@ -276,6 +276,19 @@ exports.main = async (event) => {
     // 1. 下载分析副本并转 base64
     const downloadStartedAt = Date.now();
     const file = await cloud.downloadFile({ fileID });
+    const openid = cloud.getWXContext().OPENID;
+    const jobs = (await db.collection('uploadJobs').where({ ownerOpenid: openid, thumbFileID: fileID, state: 'pending' }).limit(1).get()).data;
+    const job = jobs[0];
+    const session = job && (await db.collection('uploadJobs').where({ _id: job.sessionId }).limit(1).get()).data[0];
+    const account = await getAccount(openid);
+    if (!job || !job.audit || job.audit.version !== 1 || !session || session.state !== 'open'
+      || session.expiresAt <= Date.now() || !account || account.uploadVersion !== session.uploadVersion
+      || job.audit.uploadVersion !== session.uploadVersion
+      || crypto.createHash('sha256').update(file.fileContent).digest('hex') !== job.audit.thumbHash) {
+      throw new Error('图片未通过审核或内容已变化，请重新上传');
+    }
+    const mime = file.fileContent[0] === 0x89 ? 'image/png'
+      : file.fileContent.toString('ascii', 0, 4) === 'RIFF' ? 'image/webp' : 'image/jpeg';
     const base64 = file.fileContent.toString('base64');
     timing.downloadMs = Date.now() - downloadStartedAt;
     timing.imageBytes = file.fileContent.length;
@@ -294,7 +307,7 @@ exports.main = async (event) => {
             role: 'user',
             content: [
               { type: 'text', text: '请分析这张花艺作品图片，按要求输出 JSON。' },
-              { type: 'image_url', image_url: { url: 'data:image/jpeg;base64,' + base64 } }
+              { type: 'image_url', image_url: { url: 'data:' + mime + ';base64,' + base64 } }
             ]
           }
         ]
@@ -306,6 +319,7 @@ exports.main = async (event) => {
     const content = resp.choices && resp.choices[0] && resp.choices[0].message
       ? resp.choices[0].message.content : '';
     const tags = normalize(extractJson(content));
+    if (!tags.colors.length) throw new Error('未识别到有效颜色，请重试分析');
     timing.ok = true;
     return { ok: true, tags };
   } catch (e) {

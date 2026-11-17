@@ -21,7 +21,7 @@
     <button class="action secondary" bindtap="goMy">前往我的</button>
   </view>
   <block wx:else>
-    <view class="share-options" wx:if="{{!selecting}}">
+    <view class="share-options">
       <view class="panel all-panel">
         <view class="option-top"><text class="eyebrow">持续更新</text><text class="scope-badge">全部作品</text></view>
         <view class="option-title">{{name}}的完整作品集</view>
@@ -30,43 +30,9 @@
       </view>
       <view class="panel selected-panel">
         <view class="option-top"><text class="eyebrow">亲自挑选</text><text class="scope-badge quiet">精选作品</text></view>
-        <view class="option-title">为这次分享，选一组作品</view>
-        <view class="muted">只展示你选中的作品与附加图。每次创建独立链接，新增作品不会自动加入。</view>
-        <button class="action secondary" disabled="{{busy}}" bindtap="startSelecting">{{selectedCount ? '继续挑选 · 已选 ' + selectedCount + ' 件' : '挑选作品分享'}}</button>
-      </view>
-    </view>
-
-    <view class="selection-section" wx:else>
-      <view class="section-top">
-        <view><view class="eyebrow">仅本人作品</view><view class="section-title">挑选精选作品</view></view>
-        <button class="text-action" disabled="{{busy}}" bindtap="closeSelecting">收起</button>
-      </view>
-      <view class="selection-note">已选 {{selectedCount}} 件 · 翻页与重试会保留选择</view>
-      <view class="capacity-note">一次最多分享1000件作品，数量过多时可分组创建精选链接。</view>
-      <view class="work-grid">
-        <view class="work-card {{item.selected ? 'is-selected' : ''}}" wx:for="{{works}}" wx:key="_id" data-id="{{item._id}}" bindtap="toggleWork">
-          <view class="image-wrap">
-            <image wx:if="{{item.url && !item.imageFailed}}" class="work-image" src="{{item.url}}" mode="aspectFill" lazy-load data-id="{{item._id}}" data-url="{{item.url}}" binderror="imageError" />
-            <view class="image-failure" wx:else>
-              <view>{{item.fileID ? '图片加载失败' : '暂无可用图片'}}</view>
-              <button wx:if="{{item.fileID}}" class="image-retry" disabled="{{busy || item.imageLoading}}" data-id="{{item._id}}" catchtap="retryImage">{{item.imageLoading ? '重试中…' : '重试图片'}}</button>
-            </view>
-            <view class="selection-mark">{{item.selected ? '已选' : '选择'}}</view>
-          </view>
-          <view class="work-desc">{{item.desc}}</view>
-        </view>
-      </view>
-      <view class="list-state" wx:if="{{worksLoading}}">正在加载本人作品…</view>
-      <view class="list-state" wx:elif="{{worksError}}">
-        <view>{{worksError}}</view>
-        <button class="text-action" disabled="{{busy}}" bindtap="retryWorks">重试作品加载</button>
-      </view>
-      <view class="list-state" wx:elif="{{!works.length}}">还没有作品，上传后再来挑选。</view>
-      <button class="load-more" wx:elif="{{worksHasMore}}" disabled="{{busy}}" bindtap="loadMoreWorks">加载更多作品</button>
-      <view class="list-state" wx:else>已加载全部本人作品</view>
-      <view class="selection-bar">
-        <view><view class="selection-count">已选 {{selectedCount}} 件</view><view class="selection-hint">仅分享这些作品</view></view>
-        <button class="action primary" disabled="{{busy || !selectedCount}}" loading="{{creating === 'selected'}}" bindtap="createSelected">创建精选链接</button>
+        <view class="option-title">先筛选，再选择作品</view>
+        <view class="muted">到筛选页调整条件，在结果列表末尾点击「选中分享」。只展示选中的作品与附加图，新增作品不会自动加入。</view>
+        <button class="action secondary" disabled="{{busy}}" bindtap="goFilter">前往筛选页</button>
       </view>
     </view>
 

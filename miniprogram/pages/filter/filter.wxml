@@ -1,11 +1,24 @@
 <view class="page page-filter page-tab">
-  <view wx:if="{{!records.length && !loading}}" class="empty">
+  <view wx:if="{{loading}}" class="none-tip">正在加载筛选作品…</view>
+  <view wx:elif="{{checking}}" class="none-tip">正在确认作品空间…</view>
+  <view wx:elif="{{error}}" class="empty">
+    <view>{{error}}</view>
+    <button class="filter-action secondary" bindtap="retryLoad">重新加载</button>
+  </view>
+  <view wx:elif="{{!canBrowse}}" class="empty">请前往「我的」开通或检查作品空间</view>
+  <view wx:elif="{{!records.length}}" class="empty">
     <view class="empty-icon">·</view>
     <view>还没有可筛选的记录</view>
     <view>上传作品后，就能按标签查找</view>
   </view>
 
-  <block wx:if="{{records.length}}">
+  <block wx:if="{{!error && records.length}}">
+    <view class="filter-heading">
+      <view class="filter-title">筛选条件</view>
+      <button class="fold-toggle" disabled="{{selecting || sharing}}" bindtap="toggleFilters">{{selecting ? '已锁定' : (filtersCollapsed ? '展开' : '收起')}}</button>
+    </view>
+    <view class="filter-summary">{{filterSummary}}</view>
+    <view wx:if="{{!filtersCollapsed && !selecting}}">
     <!-- 花材筛选（含角色） -->
     <view class="section-title">花材</view>
     <view class="role-tabs">
@@ -48,18 +61,43 @@
         </view>
       </scroll-view>
     </block>
+    </view>
 
     <!-- 结果 -->
     <view class="result-bar">
-      <text>{{hasFilter ? '命中 ' + results.length + ' 条' : '全部 ' + records.length + ' 条'}}</text>
-      <text class="clear" wx:if="{{hasFilter}}" bindtap="clearAll">清空筛选</text>
+      <text>{{hasFilter ? '命中 ' + matchedCount + ' 条' : '全部 ' + matchedCount + ' 条'}}</text>
+      <text class="clear" wx:if="{{hasFilter && !filtersCollapsed && !selecting}}" bindtap="clearAll">清空筛选</text>
     </view>
     <view class="grid">
-      <view class="cell" wx:for="{{results}}" wx:key="_id" bindtap="goDetail" data-id="{{item._id}}">
-        <image class="thumb" src="{{item.url}}" mode="aspectFill" lazy-load />
+      <view class="cell {{selecting && item.selected ? 'is-selected' : ''}}" wx:for="{{results}}" wx:key="_id" bindtap="goDetail" data-id="{{item._id}}">
+        <view class="image-wrap">
+          <image wx:if="{{item.url && !item.imageFailed}}" class="thumb" src="{{item.url}}" mode="aspectFill" lazy-load data-id="{{item._id}}" data-url="{{item.url}}" bindload="imageLoad" binderror="imageError" />
+          <view wx:if="{{item.imageLoading || item.imageFailed}}" class="thumb image-failure">
+            <view>{{item.imageLoading ? '图片加载中…' : (item.fileID ? '图片加载失败' : '暂无可用图片')}}</view>
+            <button wx:if="{{item.fileID && !item.imageLoading}}" class="image-retry" disabled="{{sharing}}" data-id="{{item._id}}" catchtap="retryImage">重试图片</button>
+          </view>
+          <view wx:if="{{selecting}}" class="selection-mark {{item.selected ? 'checked' : ''}}">{{item.selected ? '✓' : ''}}</view>
+        </view>
         <view class="cell-tags">{{item.desc}}</view>
       </view>
     </view>
     <view class="none-tip" wx:if="{{hasFilter && !results.length}}">没有符合条件的作品，换个组合试试</view>
+    <button wx:if="{{hasMoreResults}}" class="filter-action secondary load-more" bindtap="loadMoreResults">加载更多（已展示 {{results.length}} / {{matchedCount}}）</button>
+    <view wx:elif="{{results.length}}" class="list-end">已展示全部 {{matchedCount}} 件作品</view>
+    <view class="selection-area" wx:if="{{matchedCount && canShare}}">
+      <button wx:if="{{!selecting}}" class="filter-action primary" disabled="{{sharing || opening}}" bindtap="startSelecting">选中分享</button>
+      <block wx:else>
+        <view class="selection-count">已选 {{selectedCount}} / 命中 {{matchedCount}} 件</view>
+        <view class="selection-note">筛选条件已锁定，取消后可展开调整</view>
+        <view class="selection-actions">
+          <button class="filter-action secondary" disabled="{{sharing}}" bindtap="selectAll">全选</button>
+          <button class="filter-action secondary" disabled="{{sharing}}" bindtap="invertSelection">反选</button>
+          <button class="filter-action primary" disabled="{{sharing || !selectedCount}}" loading="{{sharing}}" bindtap="createSelected">分享</button>
+          <button class="filter-action quiet" disabled="{{sharing}}" bindtap="cancelSelection">取消</button>
+        </view>
+      </block>
+    </view>
+    <button wx:if="{{createdToken && canShare}}" class="filter-action secondary reopen" loading="{{opening}}" disabled="{{opening || sharing}}" bindtap="openCreated">打开已创建作品集</button>
   </block>
+  <welcome-guide id="welcome-guide" bindactivate="onWelcomeActivate" />
 </view>

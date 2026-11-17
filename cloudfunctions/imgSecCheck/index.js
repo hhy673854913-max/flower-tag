@@ -64,48 +64,56 @@ async function checkUploadAccess(fileID) {
 }
 
 // 云函数入口函数
-exports.main = async (event, context) => {
-  const { fileID } = event
-  if (!fileID) return { ok: false, error: '缺少 fileID' }
-
+exports.main = async (event = {}) => {
+  const { fileID, jobId } = event;
+  const openid = cloud.getWXContext().OPENID;
   try {
-    const access = await checkUploadAccess(fileID)
-    if (!access.ok) {
-      return { ok: false, accessDenied: true, error: access.error || '账号未开通或图片不属于当前账号' }
-    }
-  } catch (err) {
-    return { ok: false, accessDenied: true, error: '账号校验服务暂不可用' }
-  }
-    // 1. 下载图片
-  try {
-    // 1. 下载图片
-    const file = await cloud.downloadFile({ fileID })
-    const buffer = file.fileContent
-
-    // 2. 调用微信安全接口进行内容审查 (同步校验)
-    const result = await cloud.openapi.security.imgSecCheck({
-      media: {
-        contentType: 'image/jpeg',
-        value: buffer
+    const access = await checkUploadAccess(fileID);
+    if (!access.ok) return { ok: false, accessDenied: true, error: access.error };
+    if (typeof jobId !== 'string' || !/^[a-f0-9]{64}$/.test(jobId)) throw new Error('请更新小程序并登记上传任务');
+    const read = async (source, name, id) => (await source.collection(name).where({ _id: id }).limit(1).get()).data[0];
+    const job = await read(db, 'uploadJobs', jobId);
+    if (!job || job.ownerOpenid !== openid || job.state !== 'pending' || job.thumbFileID !== fileID) throw new Error('图片任务已失效');
+    const session = await read(db, 'uploadJobs', job.sessionId);
+    const account = await getAccount(openid);
+    if (!session || session.state !== 'open' || session.expiresAt <= Date.now()
+      || !account || account.uploadVersion !== session.uploadVersion) throw new Error('图片任务已失效');
+    const hashes = [];
+    const Jimp = require('jimp');
+    const sizeOf = require('image-size');
+    // 审核原图的服务端派生副本，不能用客户端提供的良性缩略图替代原图审核。
+    for (const id of [job.fileID, job.thumbFileID]) {
+      const { fileContent: buffer } = await cloud.downloadFile({ fileID: id });
+      if (!Buffer.isBuffer(buffer) || !buffer.length || buffer.length > 20 * 1024 * 1024) throw new Error('图片需小于 20MB');
+      const info = sizeOf(buffer);
+      if (!['jpg', 'png'].includes(info.type)) throw new Error('仅支持 JPG、PNG 图片');
+      if (!info.width || !info.height || info.width * info.height > 20000000) throw new Error('图片像素过大，请使用省流模式重试');
+      const image = await Jimp.read(buffer);
+      if (Math.max(image.bitmap.width, image.bitmap.height) > 1600) image.scaleToFit(1600, 1600);
+      const media = await image.quality(75).getBufferAsync(Jimp.MIME_JPEG);
+      if (!media.length || media.length > 1024 * 1024) throw new Error('审核副本过大，请使用省流模式重试');
+      const result = await cloud.openapi.security.imgSecCheck({ media: { contentType: 'image/jpeg', value: media } });
+      if (!result || Number(result.errCode) !== 0) {
+        if (result && Number(result.errCode) === 87014) return { ok: false, isViolated: true, error: '图片包含违规内容' };
+        throw new Error('安全检测暂不可用，请重试');
       }
-    })
-
-    if (result.errCode === 87014 || result.errCode === 40001) {
-      return { ok: false, error: '图片包含违规内容', isViolated: true }
-    } else if (result.errCode !== 0) {
-      return { ok: false, error: '安全检测失败：' + result.errCode }
+      hashes.push(hash(buffer));
     }
-
-    return { ok: true }
-  } catch (err) {
-    console.error('imgSecCheck error:', err);
-    // 若命中违规，err 会作为抛出的异常，其中 errCode = 87014
-    if (err.errCode === 87014 || (err.message && err.message.includes('87014'))) {
-      return { ok: false, error: '图片包含违规内容', isViolated: true }
-    }
-    // 如果是图片太大等错误（如 > 1M），出于容错可以放行，或者提示。我们尽量让它抛出。
-    // API v2 可能会抛出 41005 (media data missing or format error) 如果超出大小
-    // 此处简化，对于非明确 87014 的错误，返回检测失败
-    return { ok: false, error: (err.errMsg || err.message || '安全检测异常') }
+    await db.runTransaction(async tx => {
+      const current = await read(tx, 'uploadJobs', jobId);
+      const s = await read(tx, 'uploadJobs', job.sessionId);
+      const a = await read(tx, 'accessAccounts', openid);
+      if (!current || current.state !== 'pending' || current.fileID !== job.fileID || current.thumbFileID !== job.thumbFileID
+        || !s || s.state !== 'open' || s.expiresAt <= Date.now() || !a || a.uploadVersion !== s.uploadVersion
+        || !(await isAdmin(openid) || (a.activated === true && !a.cleanupPending))) throw new Error('图片任务已失效');
+      await tx.collection('uploadJobs').doc(jobId).update({ data: {
+        audit: { version: 1, uploadVersion: s.uploadVersion, originalHash: hashes[0], thumbHash: hashes[1], checkedAt: Date.now() }
+      } });
+      await tx.collection('uploadJobs').doc(s._id).update({ data: { revision: (s.revision || 0) + 1 } });
+    });
+    return { ok: true };
+  } catch (error) {
+    if (Number(error.errCode || error.errcode) === 87014) return { ok: false, isViolated: true, error: '图片包含违规内容' };
+    return { ok: false, error: '安全检测未完成：' + (error.message || '请稍后重试') };
   }
-}
+};

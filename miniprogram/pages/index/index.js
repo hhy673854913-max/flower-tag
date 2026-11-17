@@ -1,112 +1,200 @@
 const api = require('../../utils/api');
-
-// 注意：小程序客户端数据库 .limit() 单次上限为 20，PAGE_SIZE 不得超过 20，
-// 否则第一页只返回 20 条，records.length < PAGE_SIZE 恒为 true，会误判 noMore 导致永远无法加载更多
-const PAGE_SIZE = 20;
+const onboarding = require('../../utils/onboarding');
+const DATA_TTL = 10 * 60 * 1000;
+const URL_TTL = 8 * 60 * 1000;
 
 Page({
   data: {
-    list: [],
-    loading: false,
-    noMore: false,
-    total: 0 // 记录总数（云端 count），与 list.length（已加载数）配合展示
+    list: [], loading: true, refreshing: false, checking: false, error: '',
+    noMore: false, total: 0, countReady: false, countLoading: false, countError: '',
+    initialized: false, allowed: false, skeleton: [0, 1, 2, 3]
   },
-  
   _lastLoadTime: 0,
-
+  current(epoch) { return this._visible && epoch === this._epoch; },
+  validCache() {
+    return this._lastLoadTime && Date.now() - this._lastLoadTime < DATA_TTL
+      && this._dirty === (getApp().globalData.dbUpdateTime || 0);
+  },
+  applyStatus(status) {
+    const identity = [getApp().globalData.envId, status.uploadScope, status.role, status.cleanupPending].join(':');
+    const allowed = !!(status.activated || status.isAdmin) && !status.cleanupPending;
+    if (identity !== this._identity || !allowed) this.clearContent();
+    this._identity = identity;
+    this._allowed = allowed;
+    this.setData({ allowed });
+    return allowed;
+  },
+  clearContent() {
+    this._lastLoadTime = 0;
+    this._nextSkip = 0;
+    this._countSeq = (this._countSeq || 0) + 1;
+    this.setData({ list: [], total: 0, countReady: false, countLoading: false, countError: '', noMore: false });
+  },
   async onShow() {
-    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
-      this.getTabBar().setData({ selected: 0 });
-    }
-    const app = getApp();
+    onboarding.pageShow(this);
+    this._visible = true;
+    const epoch = this._epoch = (this._epoch || 0) + 1;
+    this._allowed = false;
+    this.setData({ allowed: false, checking: true, error: '' });
+    if (this.getTabBar && this.getTabBar()) this.getTabBar().setData({ selected: 0 });
+    if (!this.validCache()) return this.reload();
+    const ticket = onboarding.capture(this);
     try {
       const status = await api.getAccessStatus();
-      if (!status.activated) {
-        this.setData({ list: [], total: 0, noMore: true });
-        this._lastLoadTime = 0;
+      if (!this.current(epoch)) return;
+      const allowed = this.applyStatus(status);
+      onboarding.present(this, status, ticket);
+      if (!allowed) return;
+      if (!this.validCache()) return this.reload();
+      if (Date.now() - (this._urlTime || 0) >= URL_TTL) await this.refreshImages(epoch);
+    } catch (error) {
+      if (!this.current(epoch)) return;
+      this.failIdentity(error);
+    } finally {
+      if (this.current(epoch)) this.setData({ checking: false, loading: false });
+    }
+  },
+  failIdentity(error) {
+    this._allowed = false;
+    this.clearContent();
+    this.setData({ allowed: false, initialized: false, error: error.message || '账号检查失败' });
+  },
+  onHide() {
+    onboarding.pageHide(this);
+    this._visible = false;
+    this._allowed = false;
+    this._epoch = (this._epoch || 0) + 1;
+    this._countSeq = (this._countSeq || 0) + 1;
+    this.setData({ allowed: false, loading: false, refreshing: false, checking: false, countLoading: false });
+  },
+  onUnload() { this.onHide(); this.clearContent(); },
+  onWelcomeActivate() {},
+  async onPullDownRefresh() {
+    api.invalidate();
+    try { await this.reload(); } finally { wx.stopPullDownRefresh(); }
+  },
+  async reload() {
+    if (!this._visible) return;
+    const epoch = this._epoch = (this._epoch || 0) + 1;
+    this._allowed = false;
+    this._lastLoadTime = 0;
+    this._countSeq = (this._countSeq || 0) + 1;
+    const ticket = onboarding.capture(this);
+    this.setData({ allowed: false, loading: !this.data.list.length, refreshing: !!this.data.list.length,
+      checking: true, error: '', countReady: false, countError: '', countLoading: false });
+    try {
+      const page = await api.getRecordPage({ skip: 0, limit: 20 });
+      if (!this.current(epoch)) return;
+      const allowed = this.applyStatus(page.status);
+      onboarding.present(this, page.status, ticket);
+      if (!allowed) {
+        this.setData({ initialized: true, noMore: true });
         return;
       }
+      this._nextSkip = page.nextSkip;
+      this._dirty = getApp().globalData.dbUpdateTime || 0;
+      this._lastLoadTime = Date.now();
+      this._urlTime = Date.now();
+      this.setData({ list: this.rows(page), noMore: !page.hasMore, initialized: true });
+      this.retryCount();
     } catch (error) {
-      this.setData({ list: [], total: 0, noMore: true });
-      this._lastLoadTime = 0;
-      wx.showToast({ title: error.message, icon: 'none' });
-      return;
-    }
-    if (!this._lastLoadTime || this._lastLoadTime < (app.globalData.dbUpdateTime || 0)) {
-      this.reload();
+      if (this.current(epoch)) this.failIdentity(error);
+    } finally {
+      if (this.current(epoch)) this.setData({ loading: false, refreshing: false, checking: false });
     }
   },
-
-  onPullDownRefresh() {
-    this.reload().then(() => wx.stopPullDownRefresh());
+  rows(page) {
+    const seen = new Set();
+    return page.records.filter(r => r._id && !seen.has(r._id) && seen.add(r._id)).map(r => {
+      const fileID = r.thumbFileID || r.fileID || '';
+      const url = page.urls[fileID] || '';
+      return { _id: r._id, fileID, url, desc: this.buildDesc(r), imageLoading: !!url, imageFailed: !url };
+    });
   },
-
-  onReachBottom() {
-    if (this.data.loading) {
-      // 加载期间触底事件会被微信吞掉（已停在底部时不会重复触发），记下来事后补发
-      this._reachBottomPending = true;
-      return;
-    }
-    this.loadMore();
-  },
-
-  async reload() {
-    this._lastLoadTime = Date.now();
-    this.setData({ list: [], noMore: false });
-    // 先取总数，再加载第一页；总数失败不阻塞列表加载
+  async retryCount() {
+    if (!this._visible || !this._allowed || this.data.countLoading) return;
+    const epoch = this._epoch;
+    const seq = this._countSeq = (this._countSeq || 0) + 1;
+    this.setData({ countLoading: true, countError: '' });
     try {
       const total = await api.countRecords();
-      this.setData({ total });
-    } catch (e) {
-      console.error('countRecords failed', e);
+      if (this.current(epoch) && seq === this._countSeq) this.setData({ total, countReady: true });
+    } catch (error) {
+      if (this.current(epoch) && seq === this._countSeq) this.setData({ countError: '总数获取失败，点击重试' });
+    } finally {
+      if (this.current(epoch) && seq === this._countSeq) this.setData({ countLoading: false });
     }
-    await this.loadMore();
   },
-
+  onReachBottom() { if (!this.data.error) return this.loadMore(); },
   async loadMore() {
-    if (this.data.loading || this.data.noMore) return;
-    this.setData({ loading: true });
+    if (!this._allowed || !this._visible || this.data.loading || this.data.checking
+      || this.data.refreshing || this.data.noMore) return;
+    if (!this.validCache()) { api.invalidate(); return this.reload(); }
+    const epoch = this._epoch;
+    const identity = this._identity;
+    const ticket = onboarding.capture(this);
+    this.setData({ loading: true, error: '' });
     try {
-      const records = await api.listRecords(this.data.list.length, PAGE_SIZE);
-      // 列表展示用缩略图（旧记录没有 thumbFileID，回退原图）
-      const displayID = r => r.thumbFileID || r.fileID;
-      // 防御：个别异常记录可能连 fileID 都没有，直接调 getTempFileURL 会整批报错，
-      // 先过滤出有效 fileID 再换临时链接，避免一页数据被一条坏记录拖死
-      const validIDs = records.map(displayID).filter(id => !!id);
-      const urlMap = await api.getTempUrls(validIDs);
-      const rows = records.map(r => ({
-        _id: r._id,
-        url: urlMap[displayID(r)] || '',
-        desc: this.buildDesc(r)
-      }));
-      const list = this.data.list.concat(rows);
-      this.setData({
-        list,
-        // 总数兜底：若 count 失败或期间有新数据，至少与已加载数一致
-        total: Math.max(this.data.total, list.length),
-        noMore: records.length < PAGE_SIZE
-      });
-    } catch (e) {
-      console.error(e);
-      wx.showToast({ title: '加载失败', icon: 'none' });
-    }
-    this.setData({ loading: false });
-    // 补发加载期间被吞掉的触底事件
-    if (this._reachBottomPending) {
-      this._reachBottomPending = false;
-      this.loadMore();
+      const page = await api.getRecordPage({ skip: this._nextSkip, limit: 20 });
+      if (!this.current(epoch)) return;
+      if (!this.applyStatus(page.status) || identity !== this._identity) {
+        this._allowed = false;
+        this.setData({ allowed: false, error: '账号状态已变化，请刷新' });
+        return;
+      }
+      onboarding.present(this, page.status, ticket);
+      const seen = new Set(this.data.list.map(r => r._id));
+      this.setData({ list: this.data.list.concat(this.rows(page).filter(r => !seen.has(r._id))),
+        noMore: !page.hasMore });
+      this._nextSkip = page.nextSkip;
+      this._dirty = getApp().globalData.dbUpdateTime || 0;
+    } catch (error) {
+      if (!this.current(epoch)) return;
+      if (error.staleSession) this.failIdentity(error);
+      else {
+        // A failed read also invalidates API caches, but retry must keep this server cursor.
+        this._dirty = getApp().globalData.dbUpdateTime || 0;
+        this.setData({ error: '加载失败，点击重试' });
+      }
+    } finally {
+      if (this.current(epoch)) this.setData({ loading: false });
     }
   },
-
+  retryLoad() { return this.data.list.length && this._allowed ? this.loadMore() : this.onPullDownRefresh(); },
+  async refreshImages(epoch = this._epoch, force = false, id = '') {
+    const rows = this.data.list.filter(r => r.fileID && (!id || r._id === id));
+    if (!this._allowed || !this.current(epoch) || !rows.length) return;
+    const seq = this._imageSeq = (this._imageSeq || 0) + 1;
+    this.setData({ list: this.data.list.map(r => rows.some(v => v._id === r._id)
+      ? Object.assign({}, r, { imageLoading: true, imageFailed: false }) : r) });
+    try {
+      const urls = await api.getTempUrls(rows.map(r => r.fileID), { force });
+      if (!this.current(epoch) || seq !== this._imageSeq) return;
+      if (!id) this._urlTime = Date.now();
+      this.setData({ list: this.data.list.map(r => rows.some(v => v._id === r._id)
+        ? Object.assign({}, r, { url: urls[r.fileID] || '', imageLoading: !!urls[r.fileID], imageFailed: !urls[r.fileID] }) : r) });
+    } catch (error) {
+      if (!this.current(epoch) || seq !== this._imageSeq) return;
+      if (error.staleSession) this.failIdentity(error);
+      else this.setData({ list: this.data.list.map(r => rows.some(v => v._id === r._id)
+        ? Object.assign({}, r, { imageLoading: false, imageFailed: true }) : r) });
+    }
+  },
+  imageLoad(e) { this.imageState(e, false); },
+  imageError(e) { this.imageState(e, true); },
+  imageState(e, failed) {
+    if (!this._visible) return;
+    const { id, url } = e.currentTarget.dataset;
+    this.setData({ list: this.data.list.map(r => r._id === id && r.url === url
+      ? Object.assign({}, r, { imageLoading: false, imageFailed: failed }) : r) });
+  },
+  retryImage(e) { return this.refreshImages(this._epoch, true, e.currentTarget.dataset.id); },
   buildDesc(r) {
-    const parts = [];
-    if (r.category) parts.push(r.category);
-    if (r.flowersMain && r.flowersMain.length) parts.push(r.flowersMain[0]);
-    if (r.style) parts.push(r.style);
-    return parts.join(' · ');
+    return [r.category, (r.flowersMain || [])[0], r.style].filter(Boolean).join(' · ');
   },
-
   goDetail(e) {
-    wx.navigateTo({ url: '/pages/detail/detail?id=' + e.currentTarget.dataset.id });
+    if (!this._visible || !this._allowed || this.data.checking || this.data.refreshing) return;
+    const id = e.currentTarget.dataset.id;
+    if (this.data.list.some(r => r._id === id)) wx.navigateTo({ url: '/pages/detail/detail?id=' + encodeURIComponent(id) });
   }
 });

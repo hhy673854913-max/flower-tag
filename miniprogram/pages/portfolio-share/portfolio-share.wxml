@@ -7,7 +7,7 @@
   <view class="portfolio-heading" wx:if="{{!invalid && mode}}">
     <view class="eyebrow">{{mode === 'all' ? '全部作品' : '精选作品'}} · 只读作品集</view>
     <view class="portfolio-title">{{title || name + '的花艺作品集'}}</view>
-    <view class="author">作者 · {{name}}</view>
+    <view class="author" bindtap="openCreator">作者 · {{name}} · 查看名片 ›</view>
     <text class="portfolio-description" wx:if="{{description}}">{{description}}</text>
     <view class="heading-bottom">
       <view class="count">当前 {{total}} 件作品</view>

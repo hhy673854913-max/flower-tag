@@ -169,6 +169,14 @@ Page({
     wx.switchTab({ url: '/pages/index/index' });
   },
 
+  openCreator() {
+    if (!this.data.valid || this.data.loading || !this.token) return;
+    wx.navigateTo({
+      url: '/pages/creator-card/creator-card?portfolioToken=' + encodeURIComponent(this.token),
+      fail: () => wx.showToast({ title: '名片打开失败，请重试', icon: 'none' })
+    });
+  },
+
   goBack() {
     if (getCurrentPages().length > 1) wx.navigateBack({ fail: () => this.goHome() });
     else this.goHome();

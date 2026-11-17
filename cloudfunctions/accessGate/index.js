@@ -48,7 +48,14 @@ function publicStatus(account, openid, admin) {
     name: account && account.name || '',
     cleanupPending: !!(account && account.cleanupPending),
     canUpload: active, canShare: active,
-    filePrefix: active ? filePrefix(openid) : ''
+    uploadScope: hash(openid).toString('hex'),
+    filePrefix: active ? filePrefix(openid) : '',
+    onboardingEligible: !admin && (!account || (
+      (account.activated === undefined || account.activated === false)
+      && (account.cleanupPending === undefined || account.cleanupPending === false)
+      && !['activatedAt', 'revokedAt', 'revokedBy', 'cleanedAt', 'accessCode', 'encryptedCode']
+        .some(key => Object.prototype.hasOwnProperty.call(account, key))
+    ))
   };
 }
 function normalizedCode(value) {
@@ -106,7 +113,8 @@ async function checkedName(value, openid) {
   if (!name || name.length > 30) fail('请填写 1～30 字的花艺师名字');
   // 名字会出现在管理员列表和分享页；文本审核失败时不写入。
   const result = await cloud.openapi.security.msgSecCheck({ content: name, version: 2, scene: 1, openid });
-  if (result.errCode || (result.result && result.result.suggest !== 'pass')) fail('名字未通过内容审核，请修改后重试');
+  if (!result || (result.errCode !== undefined && Number(result.errCode) !== 0)
+    || !result.result || result.result.suggest !== 'pass') fail('名字未通过内容审核或服务不可用，请稍后重试');
   return name;
 }
 async function checkedPortfolioText(content, openid) {
@@ -160,6 +168,22 @@ const portfolio = require('./portfolio')({
   db, cloud, userWrite, getAccount, isAdmin, owner, ownedWhere, fail, pickTags, checkedPortfolioText
 });
 const feedback = require('./feedback')({ db, cloud, getAccount, isAdmin });
+const getRecordPage = require('./record-page')({
+  db, cloud, works, getAccount, isAdmin, owner, ownedWhere, usable, publicStatus, fail
+});
+const storage = require('@cloudbase/node-sdk').init({ env: cloud.DYNAMIC_CURRENT_ENV });
+const uploads = require('./upload-jobs')({
+  db, cloud, userWrite, owner, filePrefix, pickTags, fail,
+  checkedTags,
+  metadata: args => storage.getUploadMetadata(args)
+});
+function assertLegacyFile(fileID) {
+  if (/\/(?:works|thumbs)\/uploads\//.test(fileID || '')) fail('登记图片必须通过上传任务保存');
+}
+async function checkedTags(input, openid) {
+  try { return await require('./tag-validation')(input, openid, checkedPortfolioText); }
+  catch (error) { error.validationFailed = true; throw error; }
+}
 function assertFile(fileID, openid) {
   if (typeof fileID !== 'string' || !fileID.startsWith('cloud://')
     || fileID.slice(fileID.indexOf('/') + 2).indexOf('/' + filePrefix(openid)) < 0) {
@@ -199,6 +223,7 @@ async function cleanupBatch(openid) {
   });
   if (!acquired) return { ok: true, hasMore: false, deleted: 0 };
   try {
+  if (await uploads.cleanupOwner(openid)) return { ok: true, hasMore: true, deleted: 0 };
   // 每次最多 10 件，前端连续调用；图片先删，记录后删，失败仍保留可重试的引用。
   const result = await works.where(ownedWhere(openid)).limit(10).get();
   for (const record of result.data) {
@@ -230,10 +255,23 @@ async function cleanupBatch(openid) {
 }
 
 exports.main = async (event = {}) => {
+  if (event.Type === 'Timer' || event.TriggerName === 'reapUploadJobs') {
+    // 此环境的原生 SCF Timer 不提供微信 SOURCE；服务端专用令牌绑定触发器。
+    // 令牌只存函数变量和定时器 CustomArgument，不能进入客户端、代码或日志。
+    const expected = process.env.UPLOAD_GC_TOKEN || '';
+    const supplied = typeof event.Message === 'string' ? event.Message : '';
+    if (!/^[a-f0-9]{64}$/.test(expected) || !/^[a-f0-9]{64}$/.test(supplied)
+      || !crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(supplied))
+      || event.Type !== 'Timer' || event.TriggerName !== 'reapUploadJobs') {
+      return { ok: false, error: '无权触发上传回收' };
+    }
+    return uploads.reap();
+  }
   const openid = cloud.getWXContext().OPENID;
   if (!openid) return { ok: false, error: '无法识别当前微信用户' };
   const action = event.action;
   try {
+    if (Object.prototype.hasOwnProperty.call(uploads.actions, action)) return await uploads.actions[action](event, openid);
     if (action === 'submitFeedback') return await feedback.submitFeedback(event, openid);
     const admin = await isAdmin(openid);
     if (Object.prototype.hasOwnProperty.call(portfolio, action)) return await portfolio[action](event, openid);
@@ -255,8 +293,16 @@ exports.main = async (event = {}) => {
         if (usable(account, currentAdmin)) return publicStatus(account, openid, currentAdmin);
         if (account && account.cleanupPending) fail('旧作品清理未完成，请稍后再试');
         if (account && account.lockUntil > Date.now()) fail('尝试次数过多，请 15 分钟后再试');
-        if (matched && matched.limit > 0 && await activatedCodeUsage(tx, matched.code) >= matched.limit) {
-          fail('该校验码名额已用完，请联系管理员');
+        if (matched && matched.limit > 0) {
+          // 名额属于同一个码池，不能仅靠各自账号文档的事务隔离。
+          const poolId = 'codePool_' + hash(matched.code).toString('hex');
+          const pool = await transactionAccount(tx, poolId);
+          if (await activatedCodeUsage(tx, matched.code) >= matched.limit) {
+            fail('该校验码名额已用完，请联系管理员');
+          }
+          await tx.collection('accessAccounts').doc(poolId).set({
+            data: { type: 'codePoolLock', writeVersion: (pool && pool.writeVersion || 0) + 1 }
+          });
         }
         const failures = (account && account.failures || 0) + 1;
         const data = matched
@@ -302,7 +348,8 @@ exports.main = async (event = {}) => {
           data: accountData(account, { activated: false, cleanupPending: true,
             revokedAt: db.serverDate(), revokedBy: openid,
             writeVersion: (account.writeVersion || 0) + 1,
-            portfolioVersion: crypto.randomBytes(16).toString('hex') })
+            portfolioVersion: crypto.randomBytes(16).toString('hex'),
+            uploadVersion: crypto.randomBytes(16).toString('hex'), uploadCleanupCursor: '' })
         });
       });
       return await cleanupBatch(target);
@@ -323,36 +370,36 @@ exports.main = async (event = {}) => {
       // 返回展示白名单，避免把作者 openid、校验码和分享管理字段发给访客。
       const files = recordFiles(record);
       const urls = await cloud.getTempFileURL({ fileList: files });
+      const current = (await works.where({ _id: record._id, shareToken: event.token, isPublic: true }).limit(1).get()).data[0];
+      if (!current || current.deleting || owner(current) !== owner(record)
+        || JSON.stringify(recordFiles(current).sort()) !== JSON.stringify(files.slice().sort())
+        || !usable(await getAccount(owner(current)), await isAdmin(owner(current)))) fail('作品分享已失效');
       return { ok: true, name: account && account.name || '花艺师',
-        record: Object.assign(pickTags(record), { _id: record._id, fileID: record.fileID,
-          thumbFileID: record.thumbFileID, extraFiles: record.extraFiles || [] }),
+        record: Object.assign(pickTags(current), { _id: current._id, fileID: current.fileID,
+          thumbFileID: current.thumbFileID, extraFiles: current.extraFiles || [] }),
         urls: urls.fileList.reduce((map, file) => { if (file.status === 0) map[file.fileID] = file.tempFileURL; return map; }, {}) };
     }
 
     const account = await getAccount(openid);
+    if (action === 'getRecordPage') return await getRecordPage(event, openid, account, admin);
     if (!usable(account, admin)) {
       if (action === 'listRecords' || action === 'listTags') return { ok: true, records: [] };
       if (action === 'countRecords') return { ok: true, total: 0 };
       fail('请先在「我的」输入校验码成为花艺师');
     }
     if (action === 'saveRecord') {
-      const input = event.record || {};
-      assertFile(input.fileID, openid);
-      if (input.thumbFileID) assertFile(input.thumbFileID, openid);
-      const result = await userWrite(openid, tx => tx.collection('records').add({
-        data: Object.assign(pickTags(input), { fileID: input.fileID, thumbFileID: input.thumbFileID || '',
-          _openid: openid, createdAt: db.serverDate(), isPublic: false })
-      }));
-      return { ok: true, id: result._id };
+      fail('请更新小程序并通过已审核的上传任务保存图片');
     }
     if (action === 'listRecords') {
-      const result = await works.where(ownedWhere(openid)).orderBy('createdAt', 'desc')
+      const condition = event.includeDeleting === true ? ownedWhere(openid)
+        : db.command.and([ownedWhere(openid), { deleting: db.command.neq(true) }]);
+      const result = await works.where(condition).orderBy('createdAt', 'desc')
         .skip(Math.max(0, Math.floor(Number(event.skip) || 0)))
         .limit(Math.max(1, Math.min(100, Math.floor(Number(event.limit) || 100)))).get();
       return { ok: true, records: result.data };
     }
     if (action === 'countRecords') {
-      const result = await works.where(ownedWhere(openid)).count();
+      const result = await works.where(db.command.and([ownedWhere(openid), { deleting: db.command.neq(true) }])).count();
       return { ok: true, total: result.total };
     }
     if (action === 'getRecord') {
@@ -360,17 +407,45 @@ exports.main = async (event = {}) => {
       if (record.deleting) fail('作品正在删除');
       return { ok: true, record };
     }
+    if (action === 'getOwnFileUrls') {
+      if (!Array.isArray(event.fileIDs) || event.fileIDs.length > 50
+        || event.fileIDs.some(id => typeof id !== 'string' || !id.startsWith('cloud://') || id.length > 1024)) fail('图片参数无效');
+      const ids = [...new Set(event.fileIDs)];
+      if (!ids.length) return { ok: true, urls: {} };
+      const wanted = new Set(ids), matches = [];
+      let cursor = '';
+      for (;;) {
+        const conditions = [ownedWhere(openid), { deleting: db.command.neq(true) }];
+        if (cursor) conditions.push({ _id: db.command.gt(cursor) });
+        const rows = (await works.where(db.command.and(conditions)).orderBy('_id', 'asc').limit(100).get()).data;
+        for (const r of rows) if (recordFiles(r).some(id => wanted.has(id))) matches.push(r);
+        if (new Set(matches.flatMap(recordFiles).filter(id => wanted.has(id))).size === ids.length || rows.length < 100) break;
+        cursor = rows[rows.length - 1]._id;
+      }
+      if (ids.some(id => !matches.some(r => recordFiles(r).includes(id)))) fail('图片不存在或无权访问');
+      const signed = await cloud.getTempFileURL({ fileList: ids });
+      if (!usable(await getAccount(openid), await isAdmin(openid))) fail('账号权限已变化');
+      const current = await Promise.all(matches.map(r => ownedRecord(r._id, openid)));
+      if (ids.some(id => !current.some(r => !r.deleting && recordFiles(r).includes(id)))) fail('图片已变化，请刷新');
+      const urls = {};
+      for (const f of signed.fileList || []) if (wanted.has(f.fileID) && f.status === 0) urls[f.fileID] = f.tempFileURL;
+      return { ok: true, urls };
+    }
     if (action === 'updateRecord' || action === 'shareRecord') {
+      const tags = event.tags !== undefined
+        ? await checkedTags(event.tags, openid) : {};
       const result = await userWrite(openid, async tx => {
         const collection = tx.collection('records');
         const record = await ownedRecord(event.id, openid, collection);
         if (record.deleting) fail('作品正在删除');
-        let data = pickTags(event.tags || {});
+        let data = tags;
         if (event.extraFiles !== undefined) {
           if (!Array.isArray(event.extraFiles) || event.extraFiles.length > 8) fail('附加图最多 8 张');
           event.extraFiles.forEach(file => {
             const old = (record.extraFiles || []).some(item => item.fileID === file.fileID && item.thumbFileID === file.thumbFileID);
-            if (!old) { assertFile(file.fileID, openid); if (file.thumbFileID) assertFile(file.thumbFileID, openid); }
+            if (!old) {
+              fail('新增附加图必须通过已审核的上传任务保存');
+            }
           });
           data.extraFiles = event.extraFiles.map(file => ({ fileID: file.fileID, thumbFileID: file.thumbFileID || '' }));
         }
@@ -401,12 +476,16 @@ exports.main = async (event = {}) => {
       if (action === 'bumpTags') return { ok: true };
       if (action === 'addFlowerTag') {
         const name = await checkedName(event.name, openid);
-        const existing = await db.collection('tags').where({ _openid: openid, name, custom: true }).limit(1).get();
-        if (existing.data.length) return { ok: true, added: false };
-        await userWrite(openid, tx => tx.collection('tags').add({
-          data: { _openid: openid, dimension: 'flower', name, custom: true, count: 0, createdAt: db.serverDate() }
-        }));
-        return { ok: true, added: true };
+        return await userWrite(openid, async tx => {
+          const existing = await tx.collection('tags').where(db.command.and([
+            ownedWhere(openid), { name, custom: true }
+          ])).limit(1).get();
+          if (existing.data.length) return { ok: true, added: false };
+          await tx.collection('tags').add({
+            data: { _openid: openid, dimension: 'flower', name, custom: true, count: 0, createdAt: db.serverDate() }
+          });
+          return { ok: true, added: true };
+        });
       }
       await userWrite(openid, async tx => {
         const tag = await ownedRecord(event.id, openid, tx.collection('tags'));
@@ -418,9 +497,10 @@ exports.main = async (event = {}) => {
     return { ok: false, error: '不支持的操作' };
   } catch (error) {
     // 不记录请求体；其中可能包含校验码。
+    if (error.validationFailed) return { ok: false, error: error.message, validationFailed: true };
     const message = String(error.message || error);
     if (/collection not exists|COLLECTION_NOT_EXIST|Db or Table not exist/i.test(message)) {
-      return { ok: false, error: '账号服务初始化未完成，请检查 accessAccounts、records、tags、shareLinks 集合' };
+      return { ok: false, error: '账号服务初始化未完成，请检查 accessAccounts、records、tags、shareLinks、uploadJobs 集合' };
     }
     if (/transaction|conflict/i.test(message)) return { ok: false, error: '账号状态发生变化，请重新检查后重试' };
     if (/msgSecCheck|security|87014/i.test(message)) return { ok: false, error: '名字审核未通过或服务不可用，请稍后重试' };
