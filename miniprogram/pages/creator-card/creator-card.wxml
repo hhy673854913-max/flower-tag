@@ -20,3 +20,4 @@
   </view>
   <view class="card-note" wx:if="{{valid && publicView}}">作品范围由创作者授权，分享停止后名片同步失效</view>
 </view>
+<welcome-guide id="welcome-guide" />

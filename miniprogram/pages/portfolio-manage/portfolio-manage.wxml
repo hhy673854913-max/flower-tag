@@ -83,3 +83,4 @@
     </view>
   </block>
 </view>
+<welcome-guide id="welcome-guide" />

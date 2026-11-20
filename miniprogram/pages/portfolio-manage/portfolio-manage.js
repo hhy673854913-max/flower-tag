@@ -1,4 +1,5 @@
 const api = require('../../utils/api');
+const onboarding = require('../../utils/onboarding');
 
 function metadataError(title, description) {
   const length = Array.from(title.trim()).length;
@@ -54,11 +55,13 @@ Page({
 
   onShow() {
     this._visible = true;
+    onboarding.pageShow(this);
+    onboarding.maybePresent(this);
     this.setData({ busy: false, creating: '', stoppingId: '', openingId: '', savingMetadata: false });
     return this.refreshAccess();
   },
 
-  onHide() { this._visible = false; this._epoch++; this._editSeq++; },
+  onHide() { this._visible = false; this._epoch++; this._editSeq++; onboarding.pageHide(this); },
   onUnload() {
     this.onHide();
     this._drafts.clear();

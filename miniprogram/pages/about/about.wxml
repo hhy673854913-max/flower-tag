@@ -53,3 +53,4 @@
   </view>
   <view class="about-footer">把作品留好，把灵感找回。</view>
 </view>
+<welcome-guide id="welcome-guide" />

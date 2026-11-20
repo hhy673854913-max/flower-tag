@@ -40,6 +40,28 @@ async function getAccount(openid) {
   const result = await accounts.where({ _id: openid }).limit(1).get();
   return result.data[0] || null;
 }
+// 四类可配置公告栏（云函数环境变量，独立配置，为空或缺失则不弹）：
+// NOTICE_NEW_USER_WELCOME      新用户欢迎公告：非分享入口首次进入（替代原固定新用户弹窗）
+// NOTICE_PENDING_ACTIVATION    待开通提醒公告：未成为花艺师/管理员的普通入口，每次进入
+// NOTICE_GLOBAL_EVERY_ENTRY    全员每次公告：所有入口、所有用户、每次进入
+// NOTICE_GLOBAL_FIRST_ENTRY    全员首次公告：所有入口、所有用户、仅第一次进入
+// 配置格式：第一行为标题，其余行为正文；支持字面量 \n 换行。
+function noticeConfig(raw) {
+  const value = typeof raw === 'string' ? raw.replace(/\\n/g, '\n') : '';
+  const lines = value.split('\n').map(line => line.trim()).filter(Boolean);
+  if (!lines.length) return null;
+  const title = lines[0].slice(0, 30);
+  const body = lines.slice(1, 11).map(line => line.slice(0, 200));
+  return { title, body: body.length ? body : [title] };
+}
+function announcementNotices() {
+  return {
+    newUser: noticeConfig(process.env.NOTICE_NEW_USER_WELCOME),
+    pending: noticeConfig(process.env.NOTICE_PENDING_ACTIVATION),
+    everyEntry: noticeConfig(process.env.NOTICE_GLOBAL_EVERY_ENTRY),
+    firstEntry: noticeConfig(process.env.NOTICE_GLOBAL_FIRST_ENTRY)
+  };
+}
 function publicStatus(account, openid, admin) {
   const active = usable(account, admin);
   return {
@@ -50,6 +72,7 @@ function publicStatus(account, openid, admin) {
     canUpload: active, canShare: active,
     uploadScope: hash(openid).toString('hex'),
     filePrefix: active ? filePrefix(openid) : '',
+    notices: announcementNotices(),
     onboardingEligible: !admin && (!account || (
       (account.activated === undefined || account.activated === false)
       && (account.cleanupPending === undefined || account.cleanupPending === false)

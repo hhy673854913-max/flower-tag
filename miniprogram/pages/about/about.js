@@ -1,4 +1,5 @@
 const { getVersionInfo } = require('../../utils/app-info');
+const onboarding = require('../../utils/onboarding');
 
 const PRIVACY_CONTENT = [
   '作品与标签存储在应用的微信云环境中，按用户身份隔离，并非你的个人微信云盘。应用按后台配置使用 Qwen 或 Kimi 进行 AI 图片分析。',
@@ -21,12 +22,17 @@ Page({
   },
 
   onShow() {
+    onboarding.pageShow(this);
+    onboarding.maybePresent(this);
     const info = getVersionInfo();
     const environments = { develop: '开发版', trial: '体验版', release: '正式版', local: '本地环境' };
     this.setData(Object.assign({}, info, {
       environmentLabel: environments[info.envVersion] || `运行环境：${info.envVersion}`
     }));
   },
+
+  onHide() { onboarding.pageHide(this); },
+  onUnload() { onboarding.pageHide(this); },
 
   showPrivacy() {
     if (this._privacyOpening) return;

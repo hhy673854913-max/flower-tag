@@ -1,5 +1,6 @@
 const api = require('../../utils/api');
 const flow = require('../../utils/upload-flow');
+const onboarding = require('../../utils/onboarding');
 const { DIMENSIONS, FLOWER_ROLES, normalizeTags } = require('../../utils/tagdict');
 
 Page({
@@ -46,14 +47,16 @@ Page({
 
   onShow() {
     this._visible = true;
+    onboarding.pageShow(this);
+    onboarding.maybePresent(this);
     if (this._flow) this._flow.show();
     if (this._flow && this._flow.alive() && this.data.items.length) {
       this.setData({ items: this.data.items, remaining: this.data.items.filter(x => !x.saved && !x.skipped).length,
         unknown: this.data.items.some(x => x.unknown) });
     }
   },
-  onHide() { this._visible = false; if (this._flow) this._flow.hide(); },
-  onUnload() { this._alive = false; if (this._flow) this._flow.unload(); },
+  onHide() { this._visible = false; if (this._flow) this._flow.hide(); onboarding.pageHide(this); },
+  onUnload() { this._alive = false; if (this._flow) this._flow.unload(); onboarding.pageHide(this); },
   onUploadCancelled() {
     if (this._alive) this.setData({ saving: false, unknown: false, finished: true });
   },

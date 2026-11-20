@@ -19,3 +19,4 @@
 
   <view class="foot" wx:if="{{loading}}">加载中…</view>
 </view>
+<welcome-guide id="welcome-guide" />

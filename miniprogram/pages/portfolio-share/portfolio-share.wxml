@@ -50,3 +50,4 @@
   </view>
   <view class="readonly-note" wx:if="{{valid}}">仅供欣赏 · 作品由花艺师分享</view>
 </view>
+<welcome-guide id="welcome-guide" />

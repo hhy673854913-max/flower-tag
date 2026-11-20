@@ -30,13 +30,8 @@
 .welcome-header { flex-shrink: 0; padding: 24px 22px 12px; }
 .welcome-rule { width: 28px; height: 3px; background: #2d6543; margin-bottom: 14px; }
 .welcome-title { font-size: 22px; line-height: 1.4; font-weight: 600; }
-.welcome-intro { margin-top: 10px; font-size: 14px; line-height: 1.7; color: #68756b; }
 .welcome-content { flex: 1; min-height: 0; height: 300px; }
-.welcome-step { display: flex; align-items: flex-start; margin: 16px 22px; }
-.welcome-number { flex-shrink: 0; width: 28px; padding-top: 2px; color: #2d6543; font-size: 12px; line-height: 1.8; }
-.welcome-copy { flex: 1; min-width: 0; font-size: 14px; line-height: 1.8; overflow-wrap: break-word; }
-.welcome-label { font-weight: 600; color: #2d6543; }
-.welcome-note { margin: 20px 22px 12px; padding-top: 14px; border-top: 1px solid #e1e7dc; font-size: 12px; line-height: 1.8; color: #68756b; }
+.welcome-para { margin: 16px 22px; font-size: 14px; line-height: 1.8; overflow-wrap: break-word; color: #27392c; }
 .welcome-actions { flex-shrink: 0; padding: 16px 22px 20px; border-top: 1px solid #e1e7dc; }
 .welcome-primary, .welcome-secondary { width: 100%; box-sizing: border-box; min-height: 44px; margin: 0; padding: 10px 12px; border-radius: 10px; font-size: 16px; line-height: 24px; }
 .welcome-primary { background: #2d6543; color: #fffdf9; }

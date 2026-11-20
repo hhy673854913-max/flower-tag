@@ -1,5 +1,6 @@
 {
   "navigationBarTitleText": "花艺作品集",
   "enablePullDownRefresh": true,
-  "onReachBottomDistance": 160
+  "onReachBottomDistance": 160,
+  "usingComponents": { "welcome-guide": "/components/welcome-guide/index" }
 }

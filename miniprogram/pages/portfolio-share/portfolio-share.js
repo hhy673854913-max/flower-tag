@@ -1,4 +1,5 @@
 const api = require('../../utils/api');
+const onboarding = require('../../utils/onboarding');
 
 function readMetadataText(value, limit, singleLine) {
   if (typeof value !== 'string') return '';
@@ -33,12 +34,15 @@ Page({
   },
 
   onShow() {
+    onboarding.pageShow(this);
+    onboarding.maybePresent(this);
     if (this._shown) this.refresh();
     this._shown = true;
   },
 
   onHide() {
     this._seq++;
+    onboarding.pageHide(this);
     this.setData({ valid: false, loading: false, loadingMore: false });
     wx.hideShareMenu();
   },
@@ -46,6 +50,7 @@ Page({
   onUnload() {
     this._alive = false;
     this._seq++;
+    onboarding.pageHide(this);
   },
 
   onPullDownRefresh() {

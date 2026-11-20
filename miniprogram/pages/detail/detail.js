@@ -1,5 +1,6 @@
 const api = require('../../utils/api');
 const flow = require('../../utils/upload-flow');
+const onboarding = require('../../utils/onboarding');
 const { DIMENSIONS, FLOWER_ROLES } = require('../../utils/tagdict');
 
 Page({
@@ -40,6 +41,8 @@ Page({
 
   onShow() {
     this._visible = true;
+    onboarding.pageShow(this);
+    onboarding.maybePresent(this);
     if (this._extrasFlow && this._extrasFlow.alive()) {
       this._extrasFlow.show();
       this._extrasFlow.checkpoint().then(() => {
@@ -53,6 +56,7 @@ Page({
 
   onHide() {
     this._visible = false;
+    onboarding.pageHide(this);
     if (this._extrasFlow) this._extrasFlow.hide();
     if (this.data.loadingOriginal) wx.hideLoading();
     this._loadSeq++;
@@ -62,6 +66,7 @@ Page({
   },
 
   onUnload() {
+    onboarding.pageHide(this);
     if (this._extrasFlow) this._extrasFlow.unload();
     if (this.data.loadingOriginal) wx.hideLoading();
     this._alive = false;

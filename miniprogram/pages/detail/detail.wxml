@@ -82,3 +82,4 @@
   <view class="detail-retry" bindtap="loadRecord">重新读取</view>
 </view>
 <view class="page empty" wx:else>正在读取作品…</view>
+<welcome-guide id="welcome-guide" />

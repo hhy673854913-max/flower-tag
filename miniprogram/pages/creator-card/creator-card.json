@@ -1,1 +1,2 @@
-{ "navigationBarTitleText": "花艺师名片", "enablePullDownRefresh": true }
+{ "navigationBarTitleText": "花艺师名片", "enablePullDownRefresh": true,
+  "usingComponents": { "welcome-guide": "/components/welcome-guide/index" } }

@@ -1,4 +1,5 @@
 const api = require('../../utils/api');
+const onboarding = require('../../utils/onboarding');
 
 const DIM_NAMES = {
   flower: '花材',
@@ -17,8 +18,13 @@ Page({
   },
 
   onShow() {
+    onboarding.pageShow(this);
+    onboarding.maybePresent(this);
     this.load();
   },
+
+  onHide() { onboarding.pageHide(this); },
+  onUnload() { onboarding.pageHide(this); },
 
   async load() {
     this.setData({ loading: true });

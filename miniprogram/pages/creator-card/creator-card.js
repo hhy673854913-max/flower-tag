@@ -1,4 +1,5 @@
 const api = require('../../utils/api');
+const onboarding = require('../../utils/onboarding');
 
 Page({
   data: { name: '', total: 0, scope: '', publicView: false, loading: false, valid: false, error: '' },
@@ -10,14 +11,20 @@ Page({
     this.setData({ publicView: !!this.token });
     wx.hideShareMenu();
   },
-  onShow() { this._visible = true; return this.refresh(); },
+  onShow() {
+    this._visible = true;
+    onboarding.pageShow(this);
+    onboarding.maybePresent(this);
+    return this.refresh();
+  },
   onHide() {
     this._visible = false;
     this._seq++;
+    onboarding.pageHide(this);
     this.setData({ valid: false, loading: false });
     wx.hideShareMenu();
   },
-  onUnload() { this._alive = false; this._seq++; },
+  onUnload() { this._alive = false; this._seq++; onboarding.pageHide(this); },
   onPullDownRefresh() { return this.refresh().finally(() => wx.stopPullDownRefresh()); },
 
   async refresh() {

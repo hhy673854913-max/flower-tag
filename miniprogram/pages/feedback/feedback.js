@@ -1,5 +1,6 @@
 const api = require('../../utils/api');
 const { getVersionInfo } = require('../../utils/app-info');
+const onboarding = require('../../utils/onboarding');
 
 const TYPES = [
   { code: 'bug', label: '功能异常' },
@@ -100,12 +101,15 @@ Page({
   onShow() {
     if (this._destroyed) return;
     this._visible = true;
+    onboarding.pageShow(this);
+    onboarding.maybePresent(this);
     this.refreshSubmission();
   },
 
   onHide() {
     this._visible = false;
     this._epoch++;
+    onboarding.pageHide(this);
     if (this._operation && this._operation.stage === 'confirming') this._operation = null;
     else if (this._operation) this._interrupted = true;
   },

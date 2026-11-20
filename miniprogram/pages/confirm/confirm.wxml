@@ -62,3 +62,4 @@
     </swiper-item>
   </swiper>
 </view>
+<welcome-guide id="welcome-guide" />

@@ -1,3 +1,4 @@
 {
-  "navigationBarTitleText": "标签管理"
+  "navigationBarTitleText": "标签管理",
+  "usingComponents": { "welcome-guide": "/components/welcome-guide/index" }
 }
