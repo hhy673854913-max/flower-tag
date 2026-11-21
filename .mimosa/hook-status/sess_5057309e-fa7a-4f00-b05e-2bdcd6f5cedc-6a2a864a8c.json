@@ -1,9 +1,9 @@
 {
   "schemaVersion": "mimosa-hook-status/v1",
-  "recordedAt": "2026-11-21T09:04:39.346Z",
+  "recordedAt": "2026-11-21T14:53:18.411Z",
   "sessionId": "sess_5057309e-fa7a-4f00-b05e-2bdcd6f5cedc",
   "event": "PostToolUse",
-  "toolName": "Write",
+  "toolName": "Edit",
   "file": "reports/安全性能与交互优化验收报告-20261121.md",
   "outcome": "clear",
   "coverage": "complete",
