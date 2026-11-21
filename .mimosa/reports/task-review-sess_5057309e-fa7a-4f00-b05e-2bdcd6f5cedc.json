@@ -1,36 +1,15 @@
 {
   "schema_version": "mimosa-task-review/v2",
-  "run_id": "20261121T145344651Z-11268-26f079ebb7a6",
-  "run_status": "inconclusive",
-  "errors": [
-    {
-      "stage": "candidate-select",
-      "target": "scripts/e2e/diag.js",
-      "reason": "changed_file_unreadable: observed changed file no longer exists or cannot be read"
-    },
-    {
-      "stage": "candidate-select",
-      "target": "scripts/e2e/diag2.js",
-      "reason": "changed_file_unreadable: observed changed file no longer exists or cannot be read"
-    },
-    {
-      "stage": "baseline-read",
-      "target": "package-lock.json",
-      "reason": "baseline_snapshot_unreadable: file is missing from task baseline"
-    },
-    {
-      "stage": "baseline-read",
-      "target": "package.json",
-      "reason": "baseline_snapshot_unreadable: file is missing from task baseline"
-    }
-  ],
+  "run_id": "20261121T151344698Z-34056-e5de6953ce6c",
+  "run_status": "completed",
+  "errors": [],
   "coverage": {
     "schema_version": "mimosa-hook-coverage/v1",
-    "status": "partial",
+    "status": "complete",
     "scope": "hook_observed_diff",
     "baseline": {
       "complete": true,
-      "captured_files": 45,
+      "captured_files": 46,
       "candidate_limit": 5000,
       "truncated": false,
       "enumeration_error_count": 0,
@@ -38,17 +17,17 @@
       "compensated_target_count": 1
     },
     "change_tracking": {
-      "touched_observed": 3,
-      "touched_retained": 3,
+      "touched_observed": 1,
+      "touched_retained": 1,
       "truncated": false,
-      "bash_mutation": true,
-      "bash_discovered": 3,
+      "bash_mutation": false,
+      "bash_discovered": 0,
       "bash_discovery_limit": 80,
       "bash_discovery_truncated": false
     },
     "candidates": {
-      "eligible_files": 3,
-      "selected_files": 3,
+      "eligible_files": 1,
+      "selected_files": 1,
       "limit": 20,
       "truncated": false
     },
@@ -57,129 +36,46 @@
       "scanned_files": 1,
       "skipped_files": 0,
       "failed_files": 0,
-      "project_checks_required": 1,
-      "project_checks_completed": 1
+      "project_checks_required": 0,
+      "project_checks_completed": 0
     },
     "notification": {
-      "eligible_findings": 1,
+      "eligible_findings": 0,
       "detailed_findings": 0,
       "detail_limit": 3,
-      "truncated": true
+      "truncated": false
     },
-    "reason_counts": {
-      "changed_file_unreadable": 2,
-      "baseline_snapshot_unreadable": 2,
-      "project_check_failed": 4
-    },
-    "reasons": [
-      {
-        "code": "changed_file_unreadable",
-        "stage": "candidate-select",
-        "target": "scripts/e2e/diag.js",
-        "detail": "observed changed file no longer exists or cannot be read",
-        "affects_completion": true
-      },
-      {
-        "code": "changed_file_unreadable",
-        "stage": "candidate-select",
-        "target": "scripts/e2e/diag2.js",
-        "detail": "observed changed file no longer exists or cannot be read",
-        "affects_completion": true
-      },
-      {
-        "code": "baseline_snapshot_unreadable",
-        "stage": "baseline-read",
-        "target": "package-lock.json",
-        "detail": "file is missing from task baseline",
-        "affects_completion": true
-      },
-      {
-        "code": "baseline_snapshot_unreadable",
-        "stage": "baseline-read",
-        "target": "package.json",
-        "detail": "file is missing from task baseline",
-        "affects_completion": true
-      },
-      {
-        "code": "project_check_failed",
-        "stage": "candidate-select",
-        "target": "scripts/e2e/diag.js",
-        "detail": "changed_file_unreadable: observed changed file no longer exists or cannot be read",
-        "affects_completion": true
-      },
-      {
-        "code": "project_check_failed",
-        "stage": "candidate-select",
-        "target": "scripts/e2e/diag2.js",
-        "detail": "changed_file_unreadable: observed changed file no longer exists or cannot be read",
-        "affects_completion": true
-      },
-      {
-        "code": "project_check_failed",
-        "stage": "baseline-read",
-        "target": "package-lock.json",
-        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
-        "affects_completion": true
-      },
-      {
-        "code": "project_check_failed",
-        "stage": "baseline-read",
-        "target": "package.json",
-        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
-        "affects_completion": true
-      }
-    ],
+    "reason_counts": {},
+    "reasons": [],
     "reasons_truncated": false
   },
-  "generated_at": "2026-11-21T14:53:44.651Z",
+  "generated_at": "2026-11-21T15:13:44.698Z",
   "session_id": "sess_5057309e-fa7a-4f00-b05e-2bdcd6f5cedc",
   "target": ".",
-  "revision": "9e49b037fe77c73075f734a689b6bd5754a134f8",
+  "revision": "445d013a49eceaffa300a443093ad45c12bec0bc",
   "rules_version": "unavailable",
-  "diff_hash": "faa047c37831c3900ee028104c28a25f4adc5b7f84a4717bbdba895882d3a7aa",
+  "diff_hash": "f37e70f9d1bedb082d686674da5f9a89e4d06ac0b985b799c63bf4b616f8366a",
   "diff": {
     "algorithm": "sha256",
-    "changed_file_count": 3,
+    "changed_file_count": 1,
     "changed_files": [
       {
-        "file": "package-lock.json",
+        "file": "scripts/e2e/deploy-smoke.js",
         "ranges": [
           {
             "start": 1,
-            "end": 951
+            "end": 61
           }
         ],
         "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "after_hash": "7259c931950880aa9ec631665b9977ae41b3ed59469483769ad7a20df5a48500"
-      },
-      {
-        "file": "package.json",
-        "ranges": [
-          {
-            "start": 1,
-            "end": 5
-          }
-        ],
-        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "after_hash": "61c693b5bbb24f9ef87daaa23f22a2bf253be00143cd028ffbddf8ff7513b663"
-      },
-      {
-        "file": "scripts/e2e/run.js",
-        "ranges": [
-          {
-            "start": 1,
-            "end": 271
-          }
-        ],
-        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "after_hash": "10b6eb4d6a4591c87c7df9c827a854cf7da541d70429a15b48b679aaf54b15c1"
+        "after_hash": "dbd22573ef811a2cc3d596a9e93cfcc4f114d463f4b3870ed39f1841f10bc991"
       }
     ]
   },
   "timing": {
-    "started_at": "2026-11-21T14:53:42.304Z",
-    "completed_at": "2026-11-21T14:53:44.651Z",
-    "duration_ms": 2347,
+    "started_at": "2026-11-21T15:13:43.238Z",
+    "completed_at": "2026-11-21T15:13:44.698Z",
+    "duration_ms": 1460,
     "measurement": "hook_wall_clock"
   },
   "tokens": {
@@ -193,9 +89,9 @@
     "schemaVersion": "mimosa-gate-telemetry/v1",
     "profile": "gate",
     "operation": "Stop",
-    "outcome": "partial/INCONCLUSIVE",
-    "latencyMs": 2347,
-    "peakMemoryBytes": 133251072,
+    "outcome": "complete",
+    "latencyMs": 1460,
+    "peakMemoryBytes": 133545984,
     "memoryMeasurement": "max-observed-process-rss",
     "scannedFiles": 1,
     "cache": {
@@ -212,66 +108,18 @@
       "measurement": "known-zero"
     }
   },
-  "finding_count": 1,
+  "finding_count": 0,
   "rewake_finding_count": 0,
   "evidence_boundary": {
     "scan": "candidate",
     "static_fix_verification": "observed_static_only",
     "runtime_verification": "not_performed"
   },
-  "finding_events": [
-    {
-      "finding_id": "mimosa-6b5661c8023bf7c307743378",
-      "file": "package.json",
-      "line": 3,
-      "rule_id": "mimosa.supply.version-range",
-      "severity": "low",
-      "category": "manifest",
-      "status": "candidate",
-      "decision": "observe",
-      "at": "2026-11-21T14:53:44.651Z",
-      "evidence": {
-        "kind": "static_scan",
-        "boundary": "candidate",
-        "producer": "deterministic",
-        "source": "semgrep",
-        "evidence_hash": "952bfd828a875bd72414983ee3a42db7032b2bfcce4527703905b6b136a38bc9",
-        "runtime_oracle": false
-      }
-    }
-  ],
-  "findings": [
-    {
-      "finding_id": "mimosa-6b5661c8023bf7c307743378",
-      "file": "package.json",
-      "line": 3,
-      "end_line": 3,
-      "rule_id": "mimosa.supply.version-range",
-      "severity": "low",
-      "category": "manifest",
-      "kind": "semgrep",
-      "advisory": false,
-      "status": "candidate",
-      "evidence_boundary": "candidate",
-      "evidence": [
-        {
-          "kind": "static_scan",
-          "boundary": "candidate",
-          "producer": "deterministic",
-          "source": "semgrep",
-          "file": "package.json",
-          "line": 3,
-          "evidence_hash": "952bfd828a875bd72414983ee3a42db7032b2bfcce4527703905b6b136a38bc9",
-          "runtime_oracle": false
-        }
-      ],
-      "already_reported_to_agent": false,
-      "selected_for_rewake": false
-    }
-  ],
+  "finding_events": [],
+  "findings": [],
   "artifacts": {
-    "immutable_report": ".mimosa/reports/task-review-sess_5057309e-fa7a-4f00-b05e-2bdcd6f5cedc-20261121T145344651Z-11268-26f079ebb7a6.json",
+    "immutable_report": ".mimosa/reports/task-review-sess_5057309e-fa7a-4f00-b05e-2bdcd6f5cedc-20261121T151344698Z-34056-e5de6953ce6c.json",
     "latest_report": ".mimosa/reports/task-review-sess_5057309e-fa7a-4f00-b05e-2bdcd6f5cedc.json",
-    "history_summary": ".mimosa/history/run-20261121T145344651Z-11268-26f079ebb7a6.json"
+    "history_summary": ".mimosa/history/run-20261121T151344698Z-34056-e5de6953ce6c.json"
   }
 }

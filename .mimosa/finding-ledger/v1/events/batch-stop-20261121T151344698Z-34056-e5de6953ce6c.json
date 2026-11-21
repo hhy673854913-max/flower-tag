@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "mimosa-finding-ledger-batch/v1",
+  "batchId": "stop-20261121T151344698Z-34056-e5de6953ce6c",
+  "runId": "20261121T151344698Z-34056-e5de6953ce6c",
+  "runStatus": "completed",
+  "coverage": {
+    "status": "complete",
+    "reasons": []
+  },
+  "source": {
+    "component": "zcode-hook",
+    "operationId": "Stop"
+  },
+  "revision": "445d013a49eceaffa300a443093ad45c12bec0bc",
+  "diffHash": "f37e70f9d1bedb082d686674da5f9a89e4d06ac0b985b799c63bf4b616f8366a",
+  "rulesVersion": "unavailable",
+  "sessionHash": "6a2a864a8c00ae0b520d4665b6735cfc5a35bd0e51632ab31414800423a6fc7f",
+  "reportRef": ".mimosa/reports/task-review-sess_5057309e-fa7a-4f00-b05e-2bdcd6f5cedc-20261121T151344698Z-34056-e5de6953ce6c.json",
+  "events": [],
+  "observedFindingIds": [],
+  "verifiedFiles": [
+    {
+      "file": "scripts/e2e/deploy-smoke.js",
+      "direct": "complete",
+      "projectContext": "partial"
+    }
+  ],
+  "recordedAt": "2026-11-21T15:13:45.263Z"
+}
