@@ -200,18 +200,9 @@ const uploads = require('./upload-jobs')({
   checkedTags,
   metadata: args => storage.getUploadMetadata(args)
 });
-function assertLegacyFile(fileID) {
-  if (/\/(?:works|thumbs)\/uploads\//.test(fileID || '')) fail('登记图片必须通过上传任务保存');
-}
 async function checkedTags(input, openid) {
   try { return await require('./tag-validation')(input, openid, checkedPortfolioText); }
   catch (error) { error.validationFailed = true; throw error; }
-}
-function assertFile(fileID, openid) {
-  if (typeof fileID !== 'string' || !fileID.startsWith('cloud://')
-    || fileID.slice(fileID.indexOf('/') + 2).indexOf('/' + filePrefix(openid)) < 0) {
-    fail('图片不属于当前账号，请重新上传');
-  }
 }
 function recordFiles(record) {
   return [...new Set([record.fileID, record.thumbFileID]
@@ -232,6 +223,20 @@ async function ownedRecord(id, openid, collection = works) {
   const result = await collection.doc(id).get();
   if (!result.data || owner(result.data) !== openid) fail('无权操作该作品');
   return result.data;
+}
+// 无记录 ID 提示时的兜底：按 _id 升序分页扫描本人全部作品，找到全部目标文件为止。
+async function scanOwnedForFiles(openid, wanted, ids) {
+  const matches = [];
+  let cursor = '';
+  for (;;) {
+    const conditions = [ownedWhere(openid), { deleting: db.command.neq(true) }];
+    if (cursor) conditions.push({ _id: db.command.gt(cursor) });
+    const rows = (await works.where(db.command.and(conditions)).orderBy('_id', 'asc').limit(100).get()).data;
+    for (const r of rows) if (recordFiles(r).some(id => wanted.has(id))) matches.push(r);
+    if (new Set(matches.flatMap(recordFiles).filter(id => wanted.has(id))).size === ids.length || rows.length < 100) break;
+    cursor = rows[rows.length - 1]._id;
+  }
+  return matches;
 }
 async function cleanupBatch(openid) {
   const lease = crypto.randomBytes(12).toString('hex');
@@ -435,20 +440,28 @@ exports.main = async (event = {}) => {
         || event.fileIDs.some(id => typeof id !== 'string' || !id.startsWith('cloud://') || id.length > 1024)) fail('图片参数无效');
       const ids = [...new Set(event.fileIDs)];
       if (!ids.length) return { ok: true, urls: {} };
-      const wanted = new Set(ids), matches = [];
-      let cursor = '';
-      for (;;) {
-        const conditions = [ownedWhere(openid), { deleting: db.command.neq(true) }];
-        if (cursor) conditions.push({ _id: db.command.gt(cursor) });
-        const rows = (await works.where(db.command.and(conditions)).orderBy('_id', 'asc').limit(100).get()).data;
-        for (const r of rows) if (recordFiles(r).some(id => wanted.has(id))) matches.push(r);
-        if (new Set(matches.flatMap(recordFiles).filter(id => wanted.has(id))).size === ids.length || rows.length < 100) break;
-        cursor = rows[rows.length - 1]._id;
+      const wanted = new Set(ids);
+      // 客户端可提示文件所在的记录 ID，省去按 _id 升序的全表扫描；
+      // 提示只是加速定位，归属仍以服务端 ownedWhere 查询与覆盖校验为准，不完整则回退扫描。
+      let candidates = [];
+      const hints = Array.isArray(event.recordIDs) ? [...new Set(event.recordIDs)] : [];
+      if (hints.length && hints.length <= 50
+        && hints.every(id => typeof id === 'string' && id && id.length <= 256)) {
+        const hinted = (await works.where(db.command.and([
+          ownedWhere(openid), { _id: db.command.in(hints) }, { deleting: db.command.neq(true) }
+        ])).limit(100).get()).data;
+        if (new Set(hinted.flatMap(recordFiles).filter(id => wanted.has(id))).size === ids.length) {
+          // 二次校验只针对含目标文件的记录，避免多余的单文档读取。
+          candidates = hinted.filter(r => recordFiles(r).some(id => wanted.has(id)));
+        }
       }
+      const matches = candidates.length ? candidates : await scanOwnedForFiles(openid, wanted, ids);
       if (ids.some(id => !matches.some(r => recordFiles(r).includes(id)))) fail('图片不存在或无权访问');
       const signed = await cloud.getTempFileURL({ fileList: ids });
       if (!usable(await getAccount(openid), await isAdmin(openid))) fail('账号权限已变化');
-      const current = await Promise.all(matches.map(r => ownedRecord(r._id, openid)));
+      // 提交与换链之间作品可能刚被删除；缺失按数据变化处理，而不是服务不可用。
+      const current = (await Promise.all(matches.map(r => works.doc(r._id).get().then(res => res.data, () => null))))
+        .filter(Boolean);
       if (ids.some(id => !current.some(r => !r.deleting && recordFiles(r).includes(id)))) fail('图片已变化，请刷新');
       const urls = {};
       for (const f of signed.fileList || []) if (wanted.has(f.fileID) && f.status === 0) urls[f.fileID] = f.tempFileURL;

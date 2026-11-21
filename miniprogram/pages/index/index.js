@@ -168,7 +168,8 @@ Page({
     this.setData({ list: this.data.list.map(r => rows.some(v => v._id === r._id)
       ? Object.assign({}, r, { imageLoading: true, imageFailed: false }) : r) });
     try {
-      const urls = await api.getTempUrls(rows.map(r => r.fileID), { force });
+      const urls = await api.getTempUrls(rows.map(r => r.fileID),
+        { force, recordIDs: rows.map(r => r._id) });
       if (!this.current(epoch) || seq !== this._imageSeq) return;
       if (!id) this._urlTime = Date.now();
       this.setData({ list: this.data.list.map(r => rows.some(v => v._id === r._id)
@@ -185,8 +186,10 @@ Page({
   imageState(e, failed) {
     if (!this._visible) return;
     const { id, url } = e.currentTarget.dataset;
-    this.setData({ list: this.data.list.map(r => r._id === id && r.url === url
-      ? Object.assign({}, r, { imageLoading: false, imageFailed: failed }) : r) });
+    const index = this.data.list.findIndex(r => r._id === id && r.url === url);
+    if (index < 0) return;
+    // 定向更新单张图片状态；整表 setData 会让每次图片回调的开销随列表长度线性放大。
+    this.setData({ ['list[' + index + '].imageLoading']: false, ['list[' + index + '].imageFailed']: failed });
   },
   retryImage(e) { return this.refreshImages(this._epoch, true, e.currentTarget.dataset.id); },
   buildDesc(r) {

@@ -65,7 +65,6 @@ async function ownRead(action, data = {}) {
     session.assertCurrent(stamp);
     return result;
   } catch (error) {
-    if (stamp) session.fail(stamp);
     session.fail(stamp);
     throw error;
   }
@@ -212,12 +211,17 @@ async function getTempUrls(fileIDs, options = {}) {
     if (cached) map[id] = cached;
     else missing.push(id);
   });
+  // 附带文件所在记录 ID 供服务端加速定位；仅作提示，服务端仍完整校验归属。
+  const recordIDs = [...new Set((options.recordIDs || [])
+    .filter(id => typeof id === 'string' && id && id.length <= 256))];
+  const hint = recordIDs.length && recordIDs.length <= 50 ? recordIDs : undefined;
   try {
     const signed = await session.share(stamp, JSON.stringify(['urls', !!options.force, missing.slice().sort()]), async () => {
       const urls = {};
       for (let i = 0; i < missing.length; i += 50) {
         session.assertCurrent(stamp);
-        const result = await accessGate('getOwnFileUrls', { fileIDs: missing.slice(i, i + 50) });
+        const result = await accessGate('getOwnFileUrls',
+          hint ? { fileIDs: missing.slice(i, i + 50), recordIDs: hint } : { fileIDs: missing.slice(i, i + 50) });
         session.assertCurrent(stamp);
         cacheUrls(stamp, result.urls || {}, result);
         Object.assign(urls, result.urls);

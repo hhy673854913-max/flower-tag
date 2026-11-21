@@ -18,6 +18,8 @@
     <view class="empty-icon">·</view>
     <view>{{allowed ? '还没有作品记录' : '请先开通作品空间'}}</view>
     <view>{{allowed ? '上传照片后，可按花材、颜色和风格整理' : '前往「我的」填写名字和校验码'}}</view>
+    <navigator wx:if="{{allowed}}" class="empty-action" url="/pages/upload/upload" open-type="switchTab">去上传作品</navigator>
+    <navigator wx:else class="empty-action" url="/pages/my/my" open-type="switchTab">去开通空间</navigator>
   </view>
 
   <view class="grid">

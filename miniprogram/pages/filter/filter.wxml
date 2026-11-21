@@ -5,11 +5,15 @@
     <view>{{error}}</view>
     <button class="filter-action secondary" bindtap="retryLoad">重新加载</button>
   </view>
-  <view wx:elif="{{!canBrowse}}" class="empty">请前往「我的」开通或检查作品空间</view>
+  <view wx:elif="{{!canBrowse}}" class="empty">
+    <view>请前往「我的」开通或检查作品空间</view>
+    <navigator class="empty-action" url="/pages/my/my" open-type="switchTab">去开通空间</navigator>
+  </view>
   <view wx:elif="{{!records.length}}" class="empty">
     <view class="empty-icon">·</view>
     <view>还没有可筛选的记录</view>
     <view>上传作品后，就能按标签查找</view>
+    <navigator class="empty-action" url="/pages/upload/upload" open-type="switchTab">去上传作品</navigator>
   </view>
 
   <block wx:if="{{!error && records.length}}">

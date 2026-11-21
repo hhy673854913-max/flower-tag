@@ -43,7 +43,7 @@
       <text class="clear" wx:else bindtap="cancelUpload">取消上传</text>
     </view>
 
-    <view class="item" wx:for="{{items}}" wx:key="index">
+    <view class="item" wx:for="{{items}}" wx:key="tempPath">
       <image class="item-thumb" src="{{item.tempPath}}" mode="aspectFill" />
       <view class="item-info">
         <view class="item-status s-{{item.status}}">
@@ -70,7 +70,7 @@
       </view>
     </view>
 
-    <view class="btn-primary {{running || !doneCount ? 'disabled' : ''}}" style="margin-top:40rpx" bindtap="goConfirm">
+    <view id="goConfirmBtn" class="btn-primary {{running || !doneCount ? 'disabled' : ''}}" style="margin-top:40rpx" bindtap="goConfirm">
       {{running ? '正在处理，请稍候' : '去确认标签（' + doneCount + '）'}}
     </view>
   </block>

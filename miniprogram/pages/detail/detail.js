@@ -1,6 +1,7 @@
 const api = require('../../utils/api');
 const flow = require('../../utils/upload-flow');
 const onboarding = require('../../utils/onboarding');
+const imageUtils = require('../../utils/image');
 const { DIMENSIONS, FLOWER_ROLES } = require('../../utils/tagdict');
 
 Page({
@@ -120,7 +121,7 @@ Page({
       
       const extraIDs = (record.extraFiles || []).map(f => f.thumbFileID || f.fileID);
       const allIDs = [displayID].concat(extraIDs);
-      if (!map) map = await api.getTempUrls(allIDs);
+      if (!map) map = await api.getTempUrls(allIDs, { recordIDs: [this.id] });
       if (!this.isCurrent(seq)) return;
       this.setData({
         record,
@@ -166,6 +167,23 @@ Page({
     this.setData({ currentSwiperIdx: e.detail.current });
   },
 
+  /** 点击主图/附加图：直接放大当前缩略图（缩略图已在本页，零额外请求）；需要细节再用「查看原图」。 */
+  previewThumb(e) {
+    const idx = e && e.currentTarget && e.currentTarget.dataset.idx !== undefined
+      ? Number(e.currentTarget.dataset.idx) : (this.data.currentSwiperIdx || 0);
+    const urls = [this.data.url].concat(this.data.extraUrls).filter(Boolean);
+    if (!urls.length) {
+      // 图片链接缺失（含错误占位态）：重读作品作为重试入口。
+      this.loadRecord();
+      return;
+    }
+    const bounded = Math.min(Math.max(idx, 0), urls.length - 1);
+    const current = urls[bounded] || urls[0];
+    if (this._extrasFlow && this._extrasFlow.alive()) {
+      this._extrasFlow.systemCall(() => wx.previewImage({ urls, current }));
+    } else wx.previewImage({ urls, current });
+  },
+
   async addExtraImages() {
     if (this.data.editing || !this.data.canManage || this.data.extrasBusy || this.data.saving || this.data.shareBusy) return;
     const r = this.data.record;
@@ -199,13 +217,8 @@ Page({
         // 1. 上传原图
         await api.uploadWorkImage(f.tempFilePath, null, { job, controller });
         await controller.checkpoint();
-        // 2. 上传缩略图
-        let thumbPath = f.tempFilePath;
-        try {
-          // 增大压缩强度，确保绝大多数图片缩略图 <= 1MB，以满足 imgSecCheck 接口限制
-          const c = await wx.compressImage({ src: f.tempFilePath, quality: 20 });
-          thumbPath = c.tempFilePath;
-        } catch (e) { }
+        // 2. 上传缩略图（先等比降到 1600px 再压缩，上传更快；审核副本由服务端从原图派生）
+        const thumbPath = await imageUtils.compressThumb(f.tempFilePath);
         await controller.checkpoint();
         const thumbFileID = await api.uploadThumbImage(thumbPath, null, { job, controller });
         await controller.checkpoint();
@@ -489,7 +502,8 @@ Page({
       const allOriginalIDs = [r.fileID].concat((r.extraFiles || []).map(f => f.fileID));
       const map = this.portfolioToken
         ? (await api.readPortfolioRecord(this.portfolioToken, this.id, true)).urls || {}
-        : this.token ? (await api.readSharedRecord(this.token)).urls || {} : await api.getTempUrls(allOriginalIDs);
+        : this.token ? (await api.readSharedRecord(this.token)).urls || {}
+          : await api.getTempUrls(allOriginalIDs, { recordIDs: [this.id] });
       if (!this.isCurrent(seq) || previewSeq !== this._previewSeq) return;
       const urls = allOriginalIDs.map(id => map[id]).filter(Boolean);
       const current = map[allOriginalIDs[targetIdx]];

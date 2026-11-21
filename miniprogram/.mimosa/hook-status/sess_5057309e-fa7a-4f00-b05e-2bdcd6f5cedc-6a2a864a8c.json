@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "mimosa-hook-status/v1",
+  "recordedAt": "2026-11-21T09:03:47.948Z",
+  "sessionId": "sess_5057309e-fa7a-4f00-b05e-2bdcd6f5cedc",
+  "event": "PostToolUse",
+  "toolName": "Edit",
+  "file": "C:\\Users\\Administrator\\WeChatProjects\\flower-tag\\scripts\\regression\\client.test.js",
+  "outcome": "inconclusive",
+  "coverage": "partial",
+  "findingCount": 0,
+  "durationMs": 12,
+  "hostState": "hook_complete",
+  "reportHint": ".mimosa/reports/"
+}

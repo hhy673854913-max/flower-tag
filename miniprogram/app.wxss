@@ -129,3 +129,14 @@ page {
   font-size: 72rpx;
   margin-bottom: 20rpx;
 }
+.empty .empty-action {
+  display: block;
+  width: 320rpx;
+  margin: 32rpx auto 0;
+  padding: 18rpx 0;
+  border: 1rpx solid #2d6543;
+  border-radius: 12rpx;
+  color: #2d6543;
+  font-size: 28rpx;
+  background: #fffdf9;
+}

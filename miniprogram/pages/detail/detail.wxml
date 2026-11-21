@@ -14,13 +14,13 @@
   <swiper class="hero-swiper" indicator-dots="{{true}}" circular="{{false}}" autoplay="{{false}}" bindchange="onSwiperChange">
     <!-- 主图 -->
     <swiper-item>
-      <image wx:if="{{url && !imageErrors[0]}}" class="hero" src="{{url}}" mode="aspectFit" bindtap="previewOriginal" data-idx="0" data-url="{{url}}" binderror="onImageError" show-menu-by-longpress="{{false}}" />
-      <view class="hero-image-error" wx:else bindtap="previewOriginal" data-idx="0">缩略图暂不可用 · 点此重试原图</view>
+      <image wx:if="{{url && !imageErrors[0]}}" class="hero" src="{{url}}" mode="aspectFit" bindtap="previewThumb" data-idx="0" data-url="{{url}}" binderror="onImageError" show-menu-by-longpress="{{false}}" />
+      <view class="hero-image-error" wx:else bindtap="previewThumb" data-idx="0">图片暂不可用 · 点此重试</view>
     </swiper-item>
     <!-- 附加图 -->
     <swiper-item wx:for="{{extraUrls}}" wx:key="index">
-      <image wx:if="{{item && !imageErrors[index + 1]}}" class="hero" src="{{item}}" mode="aspectFit" bindtap="previewOriginal" data-idx="{{index + 1}}" data-url="{{item}}" binderror="onImageError" show-menu-by-longpress="{{false}}" />
-      <view class="hero-image-error" wx:else bindtap="previewOriginal" data-idx="{{index + 1}}">缩略图暂不可用 · 点此重试原图</view>
+      <image wx:if="{{item && !imageErrors[index + 1]}}" class="hero" src="{{item}}" mode="aspectFit" bindtap="previewThumb" data-idx="{{index + 1}}" data-url="{{item}}" binderror="onImageError" show-menu-by-longpress="{{false}}" />
+      <view class="hero-image-error" wx:else bindtap="previewThumb" data-idx="{{index + 1}}">图片暂不可用 · 点此重试</view>
     </swiper-item>
   </swiper>
 

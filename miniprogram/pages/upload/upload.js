@@ -1,6 +1,7 @@
 const api = require('../../utils/api');
 const flow = require('../../utils/upload-flow');
 const onboarding = require('../../utils/onboarding');
+const imageUtils = require('../../utils/image');
 
 const STAGES = {
   uploading: { label: '正在保存原图', hint: '原图单独保存，方便以后查看高清细节', step: 1 },
@@ -210,7 +211,13 @@ Page({
       if (this._disposed || controller !== this._flow || !controller.alive()) break;
       await this.processOne(i, controller);
     }
-    if (!this._disposed && controller === this._flow) this.setData({ running: false });
+    if (!this._disposed && controller === this._flow) {
+      this.setData({ running: false });
+      // 批次处理完成后把「去确认标签」按钮带入视野，补全上传到确认的动线。
+      if (this.data.doneCount > 0 && !this._hidden) {
+        wx.pageScrollTo({ selector: '#goConfirmBtn', duration: 300, fail: () => {} });
+      }
+    }
   },
 
   async processOne(i, controller = this._flow) {
@@ -237,13 +244,9 @@ Page({
       this.setData({ [key + '.fileID']: fileID });
 
       // 2. 生成压缩缩略图上传 thumbs/（长期保存：列表/详情展示 + AI 分析共用，不覆盖原图）
+      // 先等比降到 1600px 再压缩质量，缩略图上传显著更快；审核副本由服务端从原图派生。
       this.setStage(i, 'compressing');
-      let thumbPath = item.tempPath;
-      try {
-        // 增大压缩强度，确保绝大多数图片缩略图 <= 1MB，以满足 imgSecCheck 接口限制
-        const c = await wx.compressImage({ src: item.tempPath, quality: 20 });
-        thumbPath = c.tempFilePath;
-      } catch (e) { /* PNG 等格式压不了就直接用原图 */ }
+      const thumbPath = await imageUtils.compressThumb(item.tempPath);
       await checkpoint();
       this.setStage(i, 'thumbnail');
       thumbFileID = await api.uploadThumbImage(thumbPath,

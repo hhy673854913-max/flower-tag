@@ -124,6 +124,7 @@ Page({
     }
   },
   onWelcomeActivate() {},
+  onReachBottom() { this.loadMoreResults(); },
   async onPullDownRefresh() {
     api.invalidate();
     this._lastLoadTime = 0;
@@ -321,7 +322,8 @@ Page({
     const epoch = this._epoch;
     if (!list.length) return;
     try {
-      const map = await api.getTempUrls(Array.from(new Set(list.map(r => r.fileID).filter(Boolean))), { force });
+      const map = await api.getTempUrls(Array.from(new Set(list.map(r => r.fileID).filter(Boolean))),
+        { force, recordIDs: list.map(r => r._id) });
       if (!this.current(epoch) || seq !== this._urlSeq) return;
       list.forEach(r => this._images.set(r._id, { url: map[r.fileID] || '', urlTime: Date.now(), imageFailed: !map[r.fileID], imageLoading: !!map[r.fileID] }));
     } catch (e) {
@@ -338,17 +340,18 @@ Page({
   },
   imageError(e) {
     const { id, url } = e.currentTarget.dataset;
-    const row = this.data.results.find(r => r._id === id && r.url === url);
-    if (!this._visible || !row) return;
-    this._images.set(id, { url: row.url, imageFailed: true, imageLoading: false });
-    this.updateCards();
+    const index = this.data.results.findIndex(r => r._id === id && r.url === url);
+    if (!this._visible || index < 0) return;
+    this._images.set(id, { url, imageFailed: true, imageLoading: false });
+    // 定向更新单张卡片；整表 setData 会让每次图片回调的开销随结果数线性放大。
+    this.setData({ ['results[' + index + '].imageLoading']: false, ['results[' + index + '].imageFailed']: true });
   },
   imageLoad(e) {
     const { id, url } = e.currentTarget.dataset;
-    const row = this.data.results.find(r => r._id === id && r.url === url);
-    if (!this._visible || !row) return;
-    this._images.set(id, Object.assign({}, this._images.get(id), { imageFailed: false, imageLoading: false }));
-    this.updateCards();
+    const index = this.data.results.findIndex(r => r._id === id && r.url === url);
+    if (!this._visible || index < 0) return;
+    this._images.set(id, Object.assign({}, this._images.get(id), { url, imageFailed: false, imageLoading: false }));
+    this.setData({ ['results[' + index + '].imageLoading']: false, ['results[' + index + '].imageFailed']: false });
   },
   retryImage(e) {
     if (!this._visible || !this.data.canBrowse || this.data.checking || this.data.sharing) return;
