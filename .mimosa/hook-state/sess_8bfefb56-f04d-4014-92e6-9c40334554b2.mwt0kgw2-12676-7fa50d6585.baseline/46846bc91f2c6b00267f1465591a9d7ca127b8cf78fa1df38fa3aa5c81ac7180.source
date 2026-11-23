@@ -1,0 +1,380 @@
+const api = require('../../utils/api');
+const onboarding = require('../../utils/onboarding');
+
+function metadataError(title, description) {
+  const length = Array.from(title.trim()).length;
+  if (!length) return '请填写作品集标题';
+  if (/[\r\n\u2028\u2029]/.test(title.trim())) return '标题请使用单行文字';
+  if (length > 40) return '标题最多 40 字，请减少文字后保存';
+  if (Array.from(description.trim()).length > 300) return '描述最多 300 字，请减少文字后保存';
+  return '';
+}
+
+function metadataFields(row) {
+  const title = typeof row.title === 'string' ? row.title.trim() : '';
+  const description = typeof row.description === 'string' ? row.description.trim() : '';
+  return {
+    title: title && !metadataError(title, '') ? title : '',
+    description: Array.from(description).length <= 300 ? description : ''
+  };
+}
+
+function confirm(options) {
+  return new Promise((resolve, reject) => wx.showModal(Object.assign({
+    confirmColor: '#2d6543',
+    success: result => resolve(result.confirm),
+    fail: () => reject(new Error('确认窗口打开失败，请重试'))
+  }, options)));
+}
+
+function dateLabel(value) {
+  const date = new Date(value);
+  if (!value || isNaN(date.getTime())) return '时间未知';
+  return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`;
+}
+
+Page({
+  data: {
+    accessLoading: true, accessError: '', canManage: false, cleanupPending: false,
+    name: '',
+    links: [], linksCursor: '', linksHasMore: false, linksLoading: false, linksError: '',
+    busy: false, creating: '', stoppingId: '', openingId: '',
+    editingId: '', editTitle: '', editDescription: '', titleCount: 0, descriptionCount: 0,
+    editError: '', savingMetadata: false
+  },
+
+  onLoad() {
+    this._epoch = 0;
+    this._linksSeq = 0;
+    this._identity = '';
+    this._editSeq = 0;
+    this._drafts = new Map();
+    this._metadataRevision = 0;
+    this._metadataUpdates = new Map();
+  },
+
+  onShow() {
+    this._visible = true;
+    onboarding.pageShow(this);
+    onboarding.maybePresent(this);
+    this.setData({ busy: false, creating: '', stoppingId: '', openingId: '', savingMetadata: false });
+    return this.refreshAccess();
+  },
+
+  onHide() { this._visible = false; this._epoch++; this._editSeq++; onboarding.pageHide(this); },
+  onUnload() {
+    this.onHide();
+    this._drafts.clear();
+    this._metadataUpdates.clear();
+  },
+  current(epoch) { return this._visible && epoch === this._epoch; },
+
+  applyStatus(status) {
+    const allowed = !!(status.activated || status.isAdmin) && !status.cleanupPending
+      && status.canShare !== false;
+    const identity = allowed ? status.filePrefix || status.role : '';
+    if (!allowed || (this._identity && this._identity !== identity)) {
+      this._linksSeq++;
+      this.clearEditor(true);
+      this._metadataUpdates.clear();
+      this.setData({
+        links: [], linksCursor: '', linksHasMore: false, linksLoading: false
+      });
+    }
+    this._identity = identity;
+    this.setData({
+      canManage: allowed, cleanupPending: !!status.cleanupPending,
+      name: status.name || '花艺师', accessError: ''
+    });
+    return allowed;
+  },
+
+  async refreshAccess() {
+    if (this.data.busy && this._visible) return;
+    const epoch = ++this._epoch;
+    this.setData({
+      accessLoading: true, accessError: '', canManage: false,
+      linksLoading: false, busy: false,
+      creating: '', stoppingId: '', openingId: ''
+    });
+    try {
+      const status = await api.getAccessStatus();
+      if (!this.current(epoch)) return;
+      if (!this.applyStatus(status)) return;
+      await this.loadLinks(false);
+    } catch (error) {
+      if (this.current(epoch)) this.setData({ accessError: error.message || '暂时无法确认账号', canManage: false });
+    } finally {
+      if (this.current(epoch)) this.setData({ accessLoading: false });
+    }
+  },
+
+  async onPullDownRefresh() {
+    try { await this.refreshAccess(); } finally { wx.stopPullDownRefresh(); }
+  },
+
+  onReachBottom() {
+    this.loadMoreLinks();
+  },
+
+  async checkAccess(epoch) {
+    const identity = this._identity;
+    const status = await api.getAccessStatus();
+    if (!this.current(epoch)) return false;
+    const allowed = this.applyStatus(status);
+    if (!allowed) throw new Error('账号未开通或已失效，请前往「我的」查看');
+    if (identity && identity !== this._identity) throw new Error('账号状态已变化，请重新选择作品');
+    return true;
+  },
+
+  async reconcileAccess(epoch) {
+    try { await this.checkAccess(epoch); }
+    catch (error) {
+      if (this.current(epoch) && this.data.canManage) {
+        this.setData({ canManage: false, accessError: error.message || '暂时无法确认账号' });
+      }
+    }
+  },
+
+  async loadLinks(append = false) {
+    if (!this.data.canManage || this.data.linksLoading || (append && !this.data.linksHasMore)) return;
+    const epoch = this._epoch;
+    const seq = ++this._linksSeq;
+    const metadataRevision = this._metadataRevision;
+    const cursor = append ? this.data.linksCursor : '';
+    this.setData({ linksLoading: true, linksError: '' });
+    try {
+      const result = await api.listPortfolioShares(cursor);
+      if (!this.current(epoch) || seq !== this._linksSeq) return;
+      if (result.hasMore && (!result.nextCursor || result.nextCursor === cursor)) {
+        throw new Error('链接分页异常，请刷新重试');
+      }
+      const rows = result.records.map(row => {
+        const saved = this._metadataUpdates.get(row.id);
+        // 保存前已发出的分页只能更新列表结构，不能回退刚保存的文本。
+        const fields = saved && saved.revision > metadataRevision ? saved.fields : metadataFields(row);
+        const modeLabel = row.mode === 'all' ? '全部作品' : '精选作品';
+        return Object.assign({}, row, fields, {
+          date: dateLabel(row.createdAt), modeLabel, displayTitle: fields.title || modeLabel
+        });
+      });
+      const links = append ? this.data.links.concat(rows) : rows;
+      const seen = new Set();
+      this.setData({
+        links: links.filter(row => !seen.has(row.id) && seen.add(row.id)),
+        linksCursor: result.nextCursor || '', linksHasMore: !!result.hasMore
+      });
+      for (const row of rows) {
+        if (!row.enabled || !row.token) {
+          this._drafts.delete(row.id);
+          if (this.data.editingId === row.id) this.clearEditor();
+        }
+      }
+      if (this.data.editingId && !this.data.links.some(row => row.id === this.data.editingId)) {
+        this.clearEditor(false, true);
+      }
+    } catch (error) {
+      if (!this.current(epoch) || seq !== this._linksSeq) return;
+      this.setData({ linksError: error.message || '链接加载失败，请重试' });
+      await this.reconcileAccess(epoch);
+    } finally {
+      if (this.current(epoch) && seq === this._linksSeq) this.setData({ linksLoading: false });
+    }
+  },
+
+  loadMoreLinks() { if (!this.data.busy) return this.loadLinks(true); },
+  retryLinks() { if (!this.data.busy) return this.loadLinks(!!this.data.links.length); },
+
+  goFilter() {
+    if (!this.ready()) return;
+    const epoch = this._epoch;
+    this.setData({ busy: true });
+    wx.switchTab({
+      url: '/pages/filter/filter',
+      success: () => wx.showToast({ title: '先筛选，再到列表末尾选中分享', icon: 'none' }),
+      fail: () => {
+        if (this.current(epoch)) wx.showToast({ title: '筛选页打开失败，请重试', icon: 'none' });
+      },
+      complete: () => { if (this.current(epoch)) this.setData({ busy: false }); }
+    });
+  },
+
+  ready() { return this._visible && this.data.canManage && !this.data.accessLoading && !this.data.busy; },
+
+  clearEditor(all = false, keepDraft = false) {
+    this._editSeq++;
+    if (all) this._drafts.clear();
+    else if (!keepDraft) this._drafts.delete(this.data.editingId);
+    this.setData({
+      editingId: '', editTitle: '', editDescription: '', titleCount: 0, descriptionCount: 0,
+      editError: '', savingMetadata: false
+    });
+  },
+
+  editLink(e) {
+    if (!this.ready()) return;
+    const row = this.data.links.find(item => item.id === e.currentTarget.dataset.id);
+    if (!row || !row.enabled || !row.token) return;
+    this._editSeq++;
+    const fields = metadataFields(row);
+    const draft = this._drafts.get(row.id) || { title: fields.title || row.modeLabel, description: fields.description };
+    this._drafts.set(row.id, draft);
+    this.setData({
+      editingId: row.id, editTitle: draft.title, editDescription: draft.description,
+      titleCount: Array.from(draft.title.trim()).length,
+      descriptionCount: Array.from(draft.description.trim()).length, editError: ''
+    });
+  },
+
+  inputMetadata(e) {
+    if (!this.ready() || !this.data.editingId) return;
+    const field = e.currentTarget.dataset.field;
+    if (field !== 'title' && field !== 'description') return;
+    const value = e.detail.value;
+    if (typeof value !== 'string') return;
+    const draft = Object.assign({}, this._drafts.get(this.data.editingId), { [field]: value });
+    this._drafts.set(this.data.editingId, draft);
+    this.setData(field === 'title'
+      ? { editTitle: value, titleCount: Array.from(value.trim()).length, editError: '' }
+      : { editDescription: value, descriptionCount: Array.from(value.trim()).length, editError: '' });
+  },
+
+  cancelMetadata() {
+    if (this.ready()) this.clearEditor();
+  },
+
+  async saveMetadata() {
+    if (!this.ready() || !this.data.editingId) return;
+    const id = this.data.editingId;
+    const row = this.data.links.find(item => item.id === id);
+    if (!row || !row.enabled || !row.token) { this.clearEditor(); return; }
+    const title = this.data.editTitle.trim();
+    const description = this.data.editDescription.trim();
+    const error = metadataError(title, description);
+    if (error) { this.setData({ editError: error }); return; }
+    const epoch = this._epoch;
+    const seq = ++this._editSeq;
+    const active = () => this.current(epoch) && seq === this._editSeq && this.data.editingId === id;
+    this.setData({ busy: true, savingMetadata: true, editError: '' });
+    try {
+      if (!await this.checkAccess(epoch) || !active()) return;
+      const result = await api.updatePortfolioMetadata(id, title, description);
+      if (!active()) return;
+      if (!await this.checkAccess(epoch) || !active()) return;
+      if (!result || !result.ok || result.id !== id || typeof result.title !== 'string'
+        || typeof result.description !== 'string' || metadataError(result.title, result.description)) {
+        throw new Error(result && result.error || '保存结果暂无法确认，请重试或刷新链接');
+      }
+      const fields = Object.assign(metadataFields(result), { updatedAt: result.updatedAt });
+      this._metadataUpdates.set(id, { revision: ++this._metadataRevision, fields });
+      this.setData({
+        links: this.data.links.map(item => item.id === id
+          ? Object.assign({}, item, fields, { displayTitle: fields.title || item.modeLabel }) : item),
+        busy: false
+      });
+      this.clearEditor();
+      wx.showToast({ title: '作品集文字已保存', icon: 'none' });
+    } catch (error) {
+      if (!active()) return;
+      this.setData({ editError: error.message || '保存失败，输入已保留，请重试' });
+      await this.reconcileAccess(epoch);
+      if (active()) await this.loadLinks(false);
+    } finally {
+      if (this.current(epoch) && (seq === this._editSeq || !this.data.editingId)) {
+        this.setData({ busy: false, savingMetadata: false });
+      }
+    }
+  },
+
+  createAll() { return this.createShare(); },
+
+  async createShare() {
+    if (!this.ready()) return;
+    const epoch = this._epoch;
+    this.setData({ busy: true, creating: 'all' });
+    try {
+      const accepted = await confirm({
+        title: '分享全部作品',
+        content: '链接持有者可查看你的全部作品及附加图，包括未开启单件分享的作品；后续新增作品也会自动展示。作品集与单件分享分别管理。已下载图片或仍有效的临时图片链接无法追溯收回。确定创建吗？',
+        confirmText: '创建链接'
+      });
+      if (!accepted || !this.current(epoch) || !await this.checkAccess(epoch)) return;
+      if (!((await api.countRecords()) > 0)) throw new Error('还没有可分享作品，请先上传作品');
+      if (!this.current(epoch)) return;
+      const result = await api.createPortfolioShare('all');
+      if (!this.current(epoch)) return;
+      if (!result.token) throw new Error('未取得分享链接，请刷新已有链接查看');
+      await this.navigatePreview(result.token);
+    } catch (error) {
+      if (!this.current(epoch)) return;
+      wx.showToast({ title: error.message || '创建失败，请重试', icon: 'none' });
+      await this.reconcileAccess(epoch);
+      if (this.current(epoch)) await this.loadLinks(false);
+    } finally {
+      if (this.current(epoch)) this.setData({ busy: false, creating: '' });
+    }
+  },
+
+  async openLink(e) {
+    if (!this.ready()) return;
+    const row = this.data.links.find(item => item.id === e.currentTarget.dataset.id);
+    if (!row || !row.enabled || !row.token) return;
+    const epoch = this._epoch;
+    this.setData({ busy: true, openingId: row.id });
+    try {
+      if (!await this.checkAccess(epoch)) return;
+      await api.readPortfolioShare(row.token, '', 1);
+      if (this.current(epoch)) await this.navigatePreview(row.token);
+    } catch (error) {
+      if (!this.current(epoch)) return;
+      wx.showToast({ title: error.message || '链接无法打开，请刷新重试', icon: 'none' });
+      await this.reconcileAccess(epoch);
+      if (this.current(epoch)) await this.loadLinks(false);
+    } finally {
+      if (this.current(epoch)) this.setData({ busy: false, openingId: '' });
+    }
+  },
+
+  navigatePreview(token) {
+    return new Promise((resolve, reject) => wx.navigateTo({
+      url: '/pages/portfolio-share/portfolio-share?portfolioToken=' + encodeURIComponent(token),
+      success: resolve,
+      fail: () => reject(new Error('预览页面打开失败，可从已有链接重试'))
+    }));
+  },
+
+  async stopLink(e) {
+    if (!this.ready()) return;
+    const row = this.data.links.find(item => item.id === e.currentTarget.dataset.id);
+    if (!row || !row.enabled) return;
+    const epoch = this._epoch;
+    this.setData({ busy: true, stoppingId: row.id });
+    try {
+      const accepted = await confirm({
+        title: '停止此作品集分享',
+        content: '仅此链接永久失效，旧令牌不能重新启用；其他作品集与单件分享不受影响。停止后新的读取将被阻断，但已下载图片或仍有效的临时图片链接无法追溯收回。',
+        confirmText: '停止分享', confirmColor: '#a36759'
+      });
+      if (!accepted || !this.current(epoch) || !await this.checkAccess(epoch)) return;
+      await api.stopPortfolioShare(row.id);
+      if (!this.current(epoch)) return;
+      // 废弃停止前的列表请求，避免旧响应把链接恢复成有效状态。
+      this._linksSeq++;
+      this.setData({
+        linksLoading: false,
+        links: this.data.links.map(item => item.id === row.id ? Object.assign({}, item, { enabled: false }) : item)
+      });
+      this._drafts.delete(row.id);
+      if (this.data.editingId === row.id) this.clearEditor();
+      wx.showToast({ title: '此链接已停止分享', icon: 'none' });
+    } catch (error) {
+      if (!this.current(epoch)) return;
+      wx.showToast({ title: error.message || '停止失败，请重试', icon: 'none' });
+      await this.reconcileAccess(epoch);
+    } finally {
+      if (this.current(epoch)) this.setData({ busy: false, stoppingId: '' });
+    }
+  },
+
+  goMy() { wx.switchTab({ url: '/pages/my/my' }); }
+});
