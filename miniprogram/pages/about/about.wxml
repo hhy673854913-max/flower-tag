@@ -1,0 +1,56 @@
+<view class="about-page">
+  <view class="about-heading">
+    <view class="eyebrow">花艺作品档案 / 关于</view>
+    <view class="about-title">让每一份灵感<text class="title-line">都有迹可循</text></view>
+    <view class="about-intro">花艺图库，记录作品，也让下一次寻找更从容。</view>
+  </view>
+
+  <view class="journal-card product-card">
+    <view class="card-index">01 / 产品</view>
+    <view class="card-title">从作品照片，到花艺标签</view>
+    <view class="card-copy">上传花艺作品照片，通过 AI 辅助打标，按颜色、色系、花材、种类、风格、用途六维组合检索。</view>
+    <view class="dimension-row">
+      <text>颜色</text><text>色系</text><text>花材</text><text>种类</text><text>风格</text><text>用途</text>
+    </view>
+    <view class="small-copy">花材区分主花、辅花与叶材。模型随后台配置使用 Qwen 或 Kimi，识别结果可在确认时调整。</view>
+  </view>
+
+  <view class="journal-card version-card">
+    <view class="card-top"><view class="card-index">02 / 运行版本</view><text class="environment">{{environmentLabel}}</text></view>
+    <view class="version-title" selectable>{{versionLabel}}</view>
+    <view class="small-copy" wx:if="{{isLocal}}">未读取到有效的小程序版本，以下为产品基线记录，不代表本次构建已发布。</view>
+    <view class="small-copy" wx:else>来自微信当前小程序的实际运行版本。</view>
+    <view class="log-caption">{{isLocal ? '产品基线更新' : '对应版本更新'}}</view>
+    <view class="update-row" wx:for="{{updates}}" wx:key="*this">
+      <view class="log-dot"></view><text>{{item}}</text>
+    </view>
+  </view>
+
+  <view class="journal-card development-card" wx:if="{{developmentUpdates.length}}">
+    <view class="card-top"><view class="card-index">03 / 本次开发更新</view><text class="development-badge">开发构建</text></view>
+    <view class="card-title">正在这份构建中发生</view>
+    <view class="small-copy">当前开发构建新增的功能，正式发布内容以对应版本更新为准。</view>
+    <view class="update-row" wx:for="{{developmentUpdates}}" wx:key="*this">
+      <view class="log-dot"></view><text>{{item}}</text>
+    </view>
+  </view>
+
+  <button class="privacy-entry" bindtap="showPrivacy" hover-class="privacy-pressed">
+    <view><view class="privacy-title">隐私与数据说明</view><view class="small-copy">云端存储、AI 分析、分享与反馈</view></view>
+    <text class="privacy-arrow">›</text>
+  </button>
+
+  <view class="history-heading">
+    <view class="eyebrow">产品历史 / 更新日志</view>
+    <view class="history-title">一路积累的改变</view>
+    <view class="small-copy">历史版本更新，按新到旧展示。</view>
+  </view>
+  <view class="journal-card history-card" wx:for="{{history}}" wx:key="version" wx:for-item="entry">
+    <view class="history-version">v{{entry.version}}</view>
+    <view class="update-row" wx:for="{{entry.updates}}" wx:key="*this">
+      <view class="log-dot"></view><text>{{item}}</text>
+    </view>
+  </view>
+  <view class="about-footer">把作品留好，把灵感找回。</view>
+</view>
+<welcome-guide id="welcome-guide" />

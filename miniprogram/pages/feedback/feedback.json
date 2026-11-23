@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "意见反馈",
+  "navigationBarBackgroundColor": "#f7f8f3",
+  "navigationBarTextStyle": "black",
+  "usingComponents": { "welcome-guide": "/components/welcome-guide/index" }
+}

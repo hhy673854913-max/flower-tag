@@ -13,7 +13,7 @@
     "minified": true,
     "urlCheck": false,
     "coverView": true,
-    "ignoreUploadUnusedFiles": true,
+    "ignoreUploadUnusedFiles": false,
     "condition": false,
     "babelSetting": {
       "ignore": [],

@@ -6,13 +6,18 @@
     "pages/my/my",
     "pages/confirm/confirm",
     "pages/detail/detail",
-    "pages/tags/tags"
+    "pages/tags/tags",
+    "pages/portfolio-manage/portfolio-manage",
+    "pages/portfolio-share/portfolio-share",
+    "pages/feedback/feedback",
+    "pages/about/about",
+    "pages/creator-card/creator-card"
   ],
   "window": {
     "navigationBarBackgroundColor": "#ffffff",
     "navigationBarTitleText": "花艺图库",
     "navigationBarTextStyle": "black",
-    "backgroundColor": "#f6f8f6"
+    "backgroundColor": "#f7f8f3"
   },
   "tabBar": {
     "custom": true,

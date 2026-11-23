@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "关于花艺图库",
+  "navigationBarBackgroundColor": "#f7f8f3",
+  "backgroundColor": "#f7f8f3",
+  "usingComponents": { "welcome-guide": "/components/welcome-guide/index" }
+}

@@ -1,23 +1,42 @@
-<view class="page page-tab">
+<view class="page page-tab works-wall">
   <view class="header" wx:if="{{list.length}}">
     <text class="title">我的作品</text>
-    <text class="count">已加载 {{list.length}} / 共 {{total}} 条记录</text>
+    <text class="count">{{countReady && list.length === total ? '共 ' + total + ' 件' : '已加载 ' + list.length + ' 件' + (countReady ? ' / 共 ' + total + ' 件' : '')}}</text>
   </view>
 
-  <view wx:if="{{!list.length && !loading}}" class="empty">
-    <view class="empty-icon">🌸</view>
-    <view>还没有作品记录</view>
-    <view>点击底部「上传」，让 Kimi 帮你自动打标签</view>
+  <view class="foot loadmore" wx:if="{{error}}" bindtap="retryLoad">{{error}}</view>
+  <view class="foot loadmore" wx:if="{{countError}}" bindtap="retryCount">{{countError}}</view>
+  <view class="foot" wx:if="{{checking && list.length}}">正在确认作品空间…</view>
+  <view class="foot" wx:elif="{{refreshing}}">正在更新作品…</view>
+  <view class="grid" wx:if="{{loading && !list.length}}">
+    <view class="cell skeleton-cell" wx:for="{{skeleton}}" wx:key="*this">
+      <view class="image-wrap"><view class="thumb skeleton-image"></view></view>
+      <view class="skeleton-line"></view>
+    </view>
+  </view>
+  <view wx:if="{{initialized && !list.length && !loading && !checking && !error}}" class="empty">
+    <view class="empty-icon">·</view>
+    <view>{{allowed ? '还没有作品记录' : '请先开通作品空间'}}</view>
+    <view>{{allowed ? '上传照片后，可按花材、颜色和风格整理' : '前往「我的」填写名字和校验码'}}</view>
+    <navigator wx:if="{{allowed}}" class="empty-action" url="/pages/upload/upload" open-type="switchTab">去上传作品</navigator>
+    <navigator wx:else class="empty-action" url="/pages/my/my" open-type="switchTab">去开通空间</navigator>
   </view>
 
   <view class="grid">
     <view class="cell" wx:for="{{list}}" wx:key="_id" bindtap="goDetail" data-id="{{item._id}}">
-      <image class="thumb" src="{{item.url}}" mode="aspectFill" lazy-load />
+      <view class="image-wrap">
+        <image wx:if="{{item.url && !item.imageFailed}}" class="thumb" src="{{item.url}}" mode="aspectFill" lazy-load data-id="{{item._id}}" data-url="{{item.url}}" bindload="imageLoad" binderror="imageError" />
+        <view wx:if="{{item.imageLoading || item.imageFailed}}" class="thumb image-placeholder">
+          <view>{{item.imageLoading ? '图片加载中…' : (item.fileID ? '图片暂不可用' : '暂无图片')}}</view>
+          <button wx:if="{{item.fileID && item.imageFailed}}" class="image-retry" disabled="{{!allowed || checking || refreshing}}" data-id="{{item._id}}" catchtap="retryImage">重试图片</button>
+        </view>
+      </view>
       <view class="cell-tags">{{item.desc}}</view>
     </view>
   </view>
 
-  <view class="foot" wx:if="{{loading}}">加载中…</view>
+  <view class="foot" wx:if="{{loading && list.length}}">正在加载更多…</view>
   <view class="foot" wx:elif="{{noMore && list.length}}">没有更多了</view>
-  <view class="foot loadmore" wx:elif="{{list.length && !noMore}}" bindtap="loadMore">加载更多（{{list.length}}/{{total}}）</view>
+  <view class="foot loadmore" wx:elif="{{list.length && !noMore && !error}}" bindtap="loadMore">加载更多</view>
+  <welcome-guide id="welcome-guide" bindactivate="onWelcomeActivate" />
 </view>

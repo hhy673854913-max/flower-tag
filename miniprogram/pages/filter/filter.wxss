@@ -48,8 +48,32 @@
   font-size: 24rpx;
 }
 
-.page-filter {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-}
+/* 外层随内容增长，沿用全局 page-tab 的导航与安全区间距。 */
+.filter-heading { display: flex; justify-content: space-between; align-items: center; }
+.filter-title { font-size: 30rpx; font-weight: 600; }
+.fold-toggle { margin: 0; padding: 10rpx 20rpx; font-size: 26rpx; line-height: 1.6; color: #2d6543; background: #eef6f0; border-radius: 12rpx; }
+button::after { border: none; }
+.fold-toggle[disabled] { color: #8b988b; }
+.filter-summary { font-size: 24rpx; line-height: 1.7; color: #6b736b; margin-top: 14rpx; word-break: break-all; }
+.role-tabs { flex-wrap: wrap; }
+.grid .cell { box-sizing: border-box; border: 2rpx solid transparent; }
+.grid .cell.is-selected { border-color: #2d6543; background: #e3f1e8; }
+.image-wrap { position: relative; }
+.image-wrap image + .image-failure { position: absolute; top: 0; left: 0; background: #eef1ea; }
+.selection-mark { position: absolute; top: 12rpx; right: 12rpx; width: 38rpx; height: 38rpx; border-radius: 50%; border: 2rpx solid #2d6543; background: #fffdf9; color: #fff; font-size: 28rpx; line-height: 38rpx; text-align: center; }
+.selection-mark.checked { background: #2d6543; }
+.grid .image-failure { display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 20rpx; color: #8b988b; }
+.image-retry { margin: 12rpx 0 0; padding: 6rpx 12rpx; font-size: 20rpx; line-height: 1.8; background: #fffdf9; color: #2d6543; }
+.filter-action { margin: 0; padding: 20rpx 12rpx; border-radius: 12rpx; font-size: 26rpx; line-height: 1.6; box-sizing: border-box; }
+.filter-action.primary { background: #2d6543; color: #fff; }
+.filter-action.secondary { background: #fffdf9; color: #2d6543; border: 1rpx solid #c9d8cc; }
+.filter-action.quiet { background: #eef1ea; color: #6b736b; }
+.filter-action[disabled] { background: #e1e8df; color: #8b988b; }
+.selection-area { margin-top: 24rpx; }
+.selection-count { font-size: 26rpx; font-weight: 600; color: #2d6543; }
+.selection-note { font-size: 22rpx; color: #8b988b; line-height: 1.7; margin: 10rpx 0 20rpx; }
+.selection-actions { display: flex; gap: 12rpx; }
+.selection-actions .filter-action { flex: 1; min-width: 0; padding: 20rpx 4rpx; }
+.list-end { text-align: center; color: #9aa39a; font-size: 24rpx; padding: 28rpx 0; }
+.load-more, .reopen { margin-top: 24rpx; }
+.empty .filter-action { margin-top: 24rpx; }

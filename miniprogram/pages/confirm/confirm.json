@@ -1,3 +1,4 @@
 {
-  "navigationBarTitleText": "确认标签"
+  "navigationBarTitleText": "确认标签",
+  "usingComponents": { "welcome-guide": "/components/welcome-guide/index" }
 }

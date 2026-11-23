@@ -1,4 +1,7 @@
 // app.js
+const uploadFlow = require('./utils/upload-flow');
+const onboarding = require('./utils/onboarding');
+const sessionCache = require('./utils/session-cache');
 const _Page = Page;
 Page = function (config) {
   if (!config.onShareAppMessage) {
@@ -22,7 +25,8 @@ App({
     dbUpdateTime: Date.now()
   },
 
-  onLaunch() {
+  onLaunch(options) {
+    onboarding.appLaunch(options);
     if (!wx.cloud) {
       console.error('当前微信版本过低，请升级后使用云开发能力');
       return;
@@ -31,5 +35,20 @@ App({
       env: this.globalData.envId,
       traceUser: true
     });
+    uploadFlow.init();
+  },
+  onShow(options) {
+    const changedEntry = onboarding.appShow(options);
+    // getApp() is unavailable while the initial onLaunch constructs the App.
+    if (!this._sessionEntryStarted || changedEntry) {
+      sessionCache.beginEntry();
+      this._sessionEntryStarted = true;
+    }
+    uploadFlow.appShow();
+  },
+  onHide() {
+    onboarding.appHide();
+    sessionCache.appHide();
+    uploadFlow.appHide();
   }
 });

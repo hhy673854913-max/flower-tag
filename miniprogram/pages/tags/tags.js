@@ -1,4 +1,5 @@
 const api = require('../../utils/api');
+const onboarding = require('../../utils/onboarding');
 
 const DIM_NAMES = {
   flower: '花材',
@@ -17,12 +18,18 @@ Page({
   },
 
   onShow() {
+    onboarding.pageShow(this);
+    onboarding.maybePresent(this);
     this.load();
   },
+
+  onHide() { onboarding.pageHide(this); },
+  onUnload() { onboarding.pageHide(this); },
 
   async load() {
     this.setData({ loading: true });
     try {
+      await api.requireAccess();
       const tags = await api.listTags();
       const groups = Object.keys(DIM_NAMES).map(dim => ({
         dim,
@@ -40,6 +47,7 @@ Page({
       }));
       this.setData({ groups });
     } catch (e) {
+      this.setData({ groups: [] });
       console.error(e);
       wx.showToast({ title: '加载失败', icon: 'none' });
     }
@@ -55,9 +63,11 @@ Page({
         if (!res.confirm) return;
         const name = (res.content || '').trim();
         if (!name) return;
-        const ok = await api.addFlowerTag(name);
-        wx.showToast({ title: ok ? '已添加' : '已存在', icon: 'none' });
-        this.load();
+        try {
+          const ok = await api.addFlowerTag(name);
+          wx.showToast({ title: ok ? '已添加' : '已存在', icon: 'none' });
+          this.load();
+        } catch (error) { wx.showToast({ title: error.message, icon: 'none' }); }
       }
     });
   },
@@ -70,8 +80,10 @@ Page({
       confirmColor: '#c0392b',
       success: async res => {
         if (!res.confirm) return;
-        await api.removeTag(id);
-        this.load();
+        try {
+          await api.removeTag(id);
+          this.load();
+        } catch (error) { wx.showToast({ title: error.message, icon: 'none' }); }
       }
     });
   }

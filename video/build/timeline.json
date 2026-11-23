@@ -1,0 +1,128 @@
+[
+  {
+    "shot": "s1_open",
+    "seg": "video\\build\\seg00.mp4",
+    "start": 0.0,
+    "end": 3.03,
+    "sub": "花艺图库｜上传照片，AI 自动打标，按标签秒查作品"
+  },
+  {
+    "shot": "s2_activate",
+    "seg": "video\\build\\seg01.mp4",
+    "start": 3.03,
+    "end": 10.56,
+    "sub": "新用户在「我的」填写名字和校验码，一键开通"
+  },
+  {
+    "shot": "s2_activate",
+    "seg": "video\\build\\seg02.mp4",
+    "start": 10.56,
+    "end": 15.86,
+    "sub": "开通后自动识别身份，无需重复输入"
+  },
+  {
+    "shot": "s3_upload",
+    "seg": "video\\build\\seg03.mp4",
+    "start": 15.86,
+    "end": 22.53,
+    "sub": "从相册选择作品照片，默认无损上传，保留高清原图"
+  },
+  {
+    "shot": "s3_upload",
+    "seg": "video\\build\\seg04.mp4",
+    "start": 22.53,
+    "end": 31.330000000000002,
+    "sub": "内容安全校验后，视觉大模型自动分析图片"
+  },
+  {
+    "shot": "s3_upload",
+    "seg": "video\\build\\seg05.mp4",
+    "start": 31.330000000000002,
+    "end": 41.33,
+    "sub": "AI 自动提取颜色、花材、种类、风格、用途等标签，人工确认后入库"
+  },
+  {
+    "shot": "s3_upload",
+    "seg": "video\\build\\seg06.mp4",
+    "start": 41.33,
+    "end": 47.16,
+    "sub": "保存后正式归档到作品墙"
+  },
+  {
+    "shot": "s4_wall",
+    "seg": "video\\build\\seg07.mp4",
+    "start": 47.16,
+    "end": 51.459999999999994,
+    "sub": "所有归档作品按时间瀑布流展示"
+  },
+  {
+    "shot": "s5_filter",
+    "seg": "video\\build\\seg08.mp4",
+    "start": 51.459999999999994,
+    "end": 66.96,
+    "sub": "同维度多选为「或」，跨维度为「与」，组合筛选一秒定位"
+  },
+  {
+    "shot": "s6_detail",
+    "seg": "video\\build\\seg09.mp4",
+    "start": 66.96,
+    "end": 71.96,
+    "sub": "详情页支持查看原图与添加附加图"
+  },
+  {
+    "shot": "s6_detail",
+    "seg": "video\\build\\seg10.mp4",
+    "start": 71.96,
+    "end": 78.96,
+    "sub": "点击查看高清原图，作品细节清晰可见"
+  },
+  {
+    "shot": "s6_detail",
+    "seg": "video\\build\\seg11.mp4",
+    "start": 78.96,
+    "end": 81.46,
+    "sub": "每个作品最多可添加 8 张附加图"
+  },
+  {
+    "shot": "s6_detail",
+    "seg": "video\\build\\seg12.mp4",
+    "start": 81.46,
+    "end": 83.46,
+    "sub": "上传附加图"
+  },
+  {
+    "shot": "s6_detail",
+    "seg": "video\\build\\seg13.mp4",
+    "start": 83.46,
+    "end": 92.46,
+    "sub": "顶部左右滑动，即可切换多角度照片"
+  },
+  {
+    "shot": "s7_edit",
+    "seg": "video\\build\\seg14.mp4",
+    "start": 92.46,
+    "end": 96.96,
+    "sub": "标签可随时人工修正，保存后立即生效"
+  },
+  {
+    "shot": "s8_share",
+    "seg": "video\\build\\seg15.mp4",
+    "start": 96.96,
+    "end": 105.96,
+    "sub": "开启作品分享，即可发送给微信好友"
+  },
+  {
+    "shot": "s8_share",
+    "seg": "video\\build\\seg16.mp4",
+    "start": 105.96,
+    "end": 111.38999999999999,
+    "sub": "对方以只读模式查看该作品，停止分享后链接立即失效"
+  },
+  {
+    "shot": "s9_stats",
+    "seg": "video\\build\\seg17.mp4",
+    "start": 111.38999999999999,
+    "end": 118.08999999999999,
+    "sub": "个人作品统计一目了然 —— 让每一束花都记得"
+  }
+]

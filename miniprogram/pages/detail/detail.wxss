@@ -5,6 +5,8 @@
   border-radius: 16rpx;
   overflow: hidden;
 }
+.extras-progress { margin: 24rpx 32rpx; padding: 24rpx; background: #f6f1e9; border-radius: 16rpx; color: #65594c; }
+.extras-actions { display: flex; gap: 16rpx; margin-top: 16rpx; }
 .hero {
   width: 100%;
   height: 100%;
@@ -59,3 +61,13 @@
 .action-row .act {
   flex: 1;
 }
+.share-info { color: #648170; font-size: 26rpx; margin-bottom: 24rpx; }
+.share-panel { margin-top: 24rpx; display: flex; gap: 24rpx; align-items: center; }
+.share-panel > view, .share-button { flex: 1; text-align: center; }
+.share-button { font-size: 28rpx; margin: 0; line-height: 1.6; }
+.share-button::after { border: none; }
+.readonly-nav { display: flex; justify-content: space-between; padding: 28rpx 32rpx 0; color: #648170; font-size: 25rpx; }
+.readonly-nav > view { padding: 12rpx 0; }
+.readonly-page { padding-top: 24rpx; }
+.hero-image-error { height: 100%; display: flex; align-items: center; justify-content: center; color: #899589; font-size: 25rpx; }
+.detail-retry { color: #2d6543; padding: 28rpx; }

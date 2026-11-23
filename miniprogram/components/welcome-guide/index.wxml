@@ -1,0 +1,15 @@
+<view wx:if="{{visible}}" class="welcome-mask" catchtap="stopTouch" catchtouchmove="stopTouch">
+  <view class="welcome-card" role="dialog" aria-modal="{{true}}" aria-label="{{title}}">
+    <view class="welcome-header">
+      <view class="welcome-rule"></view>
+      <view class="welcome-title">{{title}}</view>
+    </view>
+    <scroll-view class="welcome-content" scroll-y="{{true}}" enhanced="{{true}}" show-scrollbar="{{false}}" catchtouchmove="stopTouch">
+      <view class="welcome-para" wx:for="{{body}}" wx:key="index">{{item}}</view>
+    </scroll-view>
+    <view class="welcome-actions">
+      <button class="welcome-primary" catchtap="onPrimary">{{primaryText}}</button>
+      <button class="welcome-secondary" catchtap="onSecondary" wx:if="{{secondaryText}}">{{secondaryText}}</button>
+    </view>
+  </view>
+</view>

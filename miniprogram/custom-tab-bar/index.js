@@ -43,7 +43,13 @@ Component({
     switchTab(e) {
       const data = e.currentTarget.dataset;
       const url = data.path;
-      wx.switchTab({ url });
+      const index = Number(data.index);
+      if (index === this.data.selected || this._switching || !this.data.list[index]
+        || this.data.list[index].pagePath !== url) return;
+      this._switching = true;
+      try {
+        wx.switchTab({ url, complete: () => { this._switching = false; } });
+      } catch (error) { this._switching = false; }
     }
   }
 });

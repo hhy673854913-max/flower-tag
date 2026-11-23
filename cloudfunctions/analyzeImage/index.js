@@ -6,13 +6,70 @@
  *   AI_PROVIDER       可选，模型提供方：qwen（默认）/ kimi
  *   DASHSCOPE_API_KEY qwen 模式必填，阿里云百炼 API Key
  *   QWEN_MODEL        可选，默认 qwen-vl-plus
+ *   QWEN_ENABLE_THINKING 可选，true/false；qwen3.7-flash 默认 false，其他模型默认不传
  *   KIMI_API_KEY      kimi 模式必填，Moonshot 开放平台 API Key
  *   KIMI_MODEL        可选，默认 moonshot-v1-32k-vision-preview
  */
 const cloud = require('wx-server-sdk');
 const https = require('https');
+const crypto = require('crypto');
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
+const db = cloud.database();
+const accounts = db.collection('accessAccounts');
+
+function hash(value) {
+  return crypto.createHash('sha256').update(value).digest('hex');
+}
+
+function filePrefix(openid) {
+  return 'userFiles/' + hash(openid) + '/';
+}
+
+async function getAccount(openid) {
+  try {
+    const result = await accounts.where({ _id: openid }).limit(1).get();
+    return result.data[0] || null;
+  } catch (error) {
+    const message = String(error && error.message || error || '');
+    if (/collection not exists|COLLECTION_NOT_EXIST|Db or Table not exist/i.test(message)) {
+      return null;
+    }
+    throw error;
+  }
+}
+
+async function isAdmin(openid) {
+  if (!openid) return false;
+  const envAdmins = (process.env.ADMIN_OPENIDS || '')
+    .split(',')
+    .map(item => item.trim())
+    .filter(Boolean);
+  if (envAdmins.includes(openid)) return true;
+  try {
+    const result = await db.collection('admins').where({ openid }).limit(1).get();
+    return result.data.length > 0;
+  } catch (error) {
+    const message = String(error && error.message || error || '');
+    if (/collection not exists|COLLECTION_NOT_EXIST|Db or Table not exist/i.test(message)) {
+      return false;
+    }
+    throw error;
+  }
+}
+
+async function checkUploadAccess(fileID) {
+  const openid = cloud.getWXContext().OPENID;
+  if (!openid) return { ok: false, error: '无法识别当前微信用户' };
+  const [admin, account] = await Promise.all([isAdmin(openid), getAccount(openid)]);
+  const activated = admin || !!(account && account.activated === true && !account.cleanupPending);
+  if (!activated) return { ok: false, error: '请先在「我的」输入校验码成为花艺师' };
+  const prefix = '/' + filePrefix(openid);
+  if (typeof fileID !== 'string' || fileID.indexOf(prefix) < 0) {
+    return { ok: false, error: '图片不属于当前账号' };
+  }
+  return { ok: true };
+}
 
 // 两个提供方都走 OpenAI 兼容的 /chat/completions 协议，请求体可复用
 const PROVIDERS = {
@@ -36,7 +93,21 @@ function getProvider() {
   if (!p) {
     throw new Error('AI_PROVIDER 配置无效：' + name + '（可选值：' + Object.keys(PROVIDERS).join(' / ') + '）');
   }
-  return { name, url: p.url, apiKey: process.env[p.keyEnv], model: process.env[p.modelEnv] || p.defaultModel, keyEnv: p.keyEnv };
+  return { name, url: p.url, apiKey: process.env[p.keyEnv], model: (process.env[p.modelEnv] || p.defaultModel).trim(), keyEnv: p.keyEnv };
+}
+
+function thinkingOptions(provider) {
+  if (provider.name !== 'qwen') return {};
+  const configured = (process.env.QWEN_ENABLE_THINKING || '').trim().toLowerCase();
+  if (configured && configured !== 'true' && configured !== 'false') {
+    throw new Error('QWEN_ENABLE_THINKING 配置无效（请填 true 或 false）');
+  }
+  if (configured) return { enable_thinking: configured === 'true' };
+  // 仅对明确支持混合思考模式的当前 Flash 型号自动关闭，保留旧 Qwen-VL/Kimi 的请求兼容性。
+  if (/^qwen3\.7-flash(?:-\d{4}-\d{2}-\d{2})?$/.test(provider.model)) {
+    return { enable_thinking: false };
+  }
+  return {};
 }
 
 const COLORS = ['红', '粉', '橙', '黄', '绿', '紫', '蓝', '白', '香槟色', '复古色', '混色'];
@@ -175,12 +246,23 @@ function normalize(raw) {
 }
 
 exports.main = async (event) => {
+  const startedAt = Date.now();
   const fileID = event && event.fileID;
   if (!fileID) return { ok: false, error: '缺少 fileID' };
 
+  try {
+    const access = await checkUploadAccess(fileID);
+    if (!access.ok) return access;
+  } catch (error) {
+    console.error('access check:', error);
+    return { ok: false, error: '账号校验失败，请稍后重试' };
+  }
+
   let provider;
+  let options;
   try {
     provider = getProvider();
+    options = thinkingOptions(provider);
   } catch (e) {
     return { ok: false, error: e.message };
   }
@@ -188,16 +270,35 @@ exports.main = async (event) => {
     return { ok: false, error: '云函数未配置 ' + provider.keyEnv + ' 环境变量（当前 AI_PROVIDER=' + provider.name + '）' };
   }
 
+  const timing = { accessMs: Date.now() - startedAt };
+  let modelStartedAt;
   try {
     // 1. 下载分析副本并转 base64
+    const downloadStartedAt = Date.now();
     const file = await cloud.downloadFile({ fileID });
+    const openid = cloud.getWXContext().OPENID;
+    const jobs = (await db.collection('uploadJobs').where({ ownerOpenid: openid, thumbFileID: fileID, state: 'pending' }).limit(1).get()).data;
+    const job = jobs[0];
+    const session = job && (await db.collection('uploadJobs').where({ _id: job.sessionId }).limit(1).get()).data[0];
+    const account = await getAccount(openid);
+    if (!job || !job.audit || job.audit.version !== 1 || !session || session.state !== 'open'
+      || session.expiresAt <= Date.now() || !account || account.uploadVersion !== session.uploadVersion
+      || job.audit.uploadVersion !== session.uploadVersion
+      || crypto.createHash('sha256').update(file.fileContent).digest('hex') !== job.audit.thumbHash) {
+      throw new Error('图片未通过审核或内容已变化，请重新上传');
+    }
+    const mime = file.fileContent[0] === 0x89 ? 'image/png'
+      : file.fileContent.toString('ascii', 0, 4) === 'RIFF' ? 'image/webp' : 'image/jpeg';
     const base64 = file.fileContent.toString('base64');
+    timing.downloadMs = Date.now() - downloadStartedAt;
+    timing.imageBytes = file.fileContent.length;
 
-    // 2. 调视觉模型（qwen-vl-plus 或 kimi vision，均为 OpenAI 兼容协议）
+    // 2. 调视觉模型，保持六维标签输出结构。
+    modelStartedAt = Date.now();
     const resp = await postJson(
       provider.url,
       { Authorization: 'Bearer ' + provider.apiKey },
-      {
+      Object.assign({
         model: provider.model,
         temperature: 0.2,
         messages: [
@@ -206,20 +307,33 @@ exports.main = async (event) => {
             role: 'user',
             content: [
               { type: 'text', text: '请分析这张花艺作品图片，按要求输出 JSON。' },
-              { type: 'image_url', image_url: { url: 'data:image/jpeg;base64,' + base64 } }
+              { type: 'image_url', image_url: { url: 'data:' + mime + ';base64,' + base64 } }
             ]
           }
         ]
-      }
+      }, options)
     );
+    timing.modelMs = Date.now() - modelStartedAt;
 
     if (resp.error) throw new Error(resp.error.message || 'AI 接口报错（' + provider.name + '）');
     const content = resp.choices && resp.choices[0] && resp.choices[0].message
       ? resp.choices[0].message.content : '';
     const tags = normalize(extractJson(content));
+    if (!tags.colors.length) throw new Error('未识别到有效颜色，请重试分析');
+    timing.ok = true;
     return { ok: true, tags };
   } catch (e) {
+    timing.ok = false;
     return { ok: false, error: e.message || String(e) };
+  } finally {
+    if (modelStartedAt && timing.modelMs === undefined) timing.modelMs = Date.now() - modelStartedAt;
+    // 仅记录耗时和请求规模，不记录图片、密钥、用户身份或完整响应。
+    console.info('analyzeImage timing', Object.assign(timing, {
+      provider: provider.name,
+      model: provider.model,
+      thinking: options.enable_thinking === undefined ? 'provider-default' : options.enable_thinking,
+      totalMs: Date.now() - startedAt
+    }));
   }
   // 注意：入参 fileID 是 thumbs/ 下长期保存的缩略图（列表/详情展示共用），
   // 本函数只读取、绝不删除。早期的 analysis/ 一次性副本机制已废弃。

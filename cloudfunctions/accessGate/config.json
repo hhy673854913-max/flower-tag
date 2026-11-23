@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "openapi": ["security.msgSecCheck"]
+  },
+  "timeout": 60,
+  "triggers": [
+    { "name": "reapUploadJobs", "type": "timer", "config": "0 */10 * * * * *" }
+  ]
+}

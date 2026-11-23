@@ -1,4 +1,5 @@
 const api = require('../../utils/api');
+const onboarding = require('../../utils/onboarding');
 const { DIMENSIONS } = require('../../utils/tagdict');
 
 const ROLE_TABS = [
@@ -7,6 +8,18 @@ const ROLE_TABS = [
   { key: 'sub', name: '作为辅花' },
   { key: 'leaf', name: '作为叶材' }
 ];
+
+const BATCH_SIZE = 60;
+function selectionError(ids) {
+  if (ids.length > 1000) return '最多选择 1000 件作品，请减少选择';
+  // JSON 会转义孤立代理项；按码点计算其 UTF-8 字节，兼容中文和 emoji ID。
+  let bytes = 0;
+  for (const char of JSON.stringify(ids)) {
+    const code = char.codePointAt(0);
+    bytes += code <= 0x7f ? 1 : code <= 0x7ff ? 2 : code <= 0xffff ? 3 : 4;
+  }
+  return bytes > 128 * 1024 ? '所选作品过多，请减少选择' : '';
+}
 
 Page({
   data: {
@@ -17,34 +30,130 @@ Page({
     records: [],
     results: [],
     loading: true,
-    hasFilter: false
+    hasFilter: false,
+    filtersCollapsed: false, filterSummary: '未设置筛选条件',
+    selecting: false, selectedCount: 0, matchedCount: 0, hasMoreResults: false,
+    error: '', checking: true, canBrowse: false, canShare: false, sharing: false,
+    createdToken: '', opening: false
   },
   
   _lastLoadTime: 0,
 
-  onShow() {
+  onLoad() {
+    this._epoch = 0;
+    this._urlSeq = 0;
+    this._selected = new Set();
+    this._matched = [];
+    this._images = new Map();
+    this._identity = '';
+    this._limit = BATCH_SIZE;
+  },
+  current(epoch) { return this._visible && epoch === this._epoch; },
+  onHide() {
+    onboarding.pageHide(this);
+    this._visible = false;
+    this._epoch++;
+    this._urlSeq++;
+    if (this._createSent) this._unknownCreation = true;
+    this._createSent = false;
+    this.setData({ sharing: false, opening: false, checking: false, loading: false, canBrowse: false, canShare: false });
+  },
+  onUnload() { this.onHide(); this._images.clear(); this._selected.clear(); },
+  resetAccount() {
+    this._urlSeq++;
+    this._lastLoadTime = 0;
+    this._matched = [];
+    this._images.clear();
+    this._selected.clear();
+    this._unknownCreation = false;
+    this.setData({
+      records: [], results: [], dims: [], flowers: [], roleMode: 'any',
+      hasFilter: false, filterSummary: '未设置筛选条件', filtersCollapsed: false,
+      selecting: false, selectedCount: 0, matchedCount: 0, hasMoreResults: false,
+      createdToken: '', sharing: false, opening: false
+    });
+  },
+  applyStatus(status) {
+    const allowed = !!(status.activated || status.isAdmin) && !status.cleanupPending;
+    const identity = [getApp().globalData.envId, status.uploadScope, status.role, status.cleanupPending].join(':');
+    if (!allowed || (this._identity && this._identity !== identity)) this.resetAccount();
+    this._identity = identity;
+    this.setData({ canBrowse: allowed, canShare: allowed && status.canShare !== false });
+    if (allowed && status.canShare === false && this.data.selecting) {
+      this._selected.clear();
+      this.setData({ selecting: false, selectedCount: 0 });
+      this.updateCards();
+    }
+    return allowed;
+  },
+  async onShow() {
+    onboarding.pageShow(this);
+    this._visible = true;
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ selected: 1 });
     }
-    const app = getApp();
-    if (!this._lastLoadTime || this._lastLoadTime < (app.globalData.dbUpdateTime || 0)) {
-      this.loadAll();
+    const epoch = ++this._epoch;
+    this.setData({ loading: !this._lastLoadTime, checking: true, error: '', canBrowse: false, canShare: false });
+    const ticket = onboarding.capture(this);
+    try {
+      const status = await api.getAccessStatus();
+      if (!this.current(epoch)) return;
+      onboarding.present(this, status, ticket);
+      if (!this.applyStatus(status)) return;
+      if (this._unknownCreation) {
+        this._unknownCreation = false;
+        wx.showToast({ title: '请到「我的 → 作品集分享」核查刚才的链接', icon: 'none' });
+      }
+      const dirty = getApp().globalData.dbUpdateTime || 0;
+      if (!this._lastLoadTime || this._dirty !== dirty || Date.now() - this._lastLoadTime >= 10 * 60 * 1000) {
+        if (this.data.selecting) {
+          this.cancelSelection();
+          wx.showToast({ title: '作品已更新，请重新选择', icon: 'none' });
+        }
+        await this.loadAll(epoch);
+      } else {
+        await this.renderResults();
+      }
+    } catch (error) {
+      if (!this.current(epoch)) return;
+      this.resetAccount();
+      this.setData({ error: error.message || '暂时无法确认账号', canBrowse: false, canShare: false });
+      this._lastLoadTime = 0;
+    } finally {
+      if (this.current(epoch)) this.setData({ loading: false, checking: false });
     }
   },
+  onWelcomeActivate() {},
+  onReachBottom() { this.loadMoreResults(); },
+  async onPullDownRefresh() {
+    api.invalidate();
+    this._lastLoadTime = 0;
+    try { await this.onShow(); } finally { wx.stopPullDownRefresh(); }
+  },
 
-  async loadAll() {
-    this._lastLoadTime = Date.now();
-    this.setData({ loading: true });
+  retryLoad() { if (!this.data.sharing) return this.onShow(); },
+  async loadAll(epoch = this._epoch) {
+    this.setData({ loading: !this.data.records.length, error: '' });
+    const started = Date.now();
     try {
       const records = await api.fetchAllRecords();
-      this.setData({ records });
+      if (!this.current(epoch)) return;
+      const seen = new Set();
+      this._images.clear();
+      this.setData({ records: records.filter(r => r._id && !r.deleting && !seen.has(r._id) && seen.add(r._id)) });
       this.aggregate();
       this.compute();
+      this._lastLoadTime = started;
+      this._dirty = getApp().globalData.dbUpdateTime || 0;
     } catch (e) {
-      console.error(e);
-      wx.showToast({ title: '加载失败', icon: 'none' });
+      if (this.current(epoch)) {
+        this._lastLoadTime = 0;
+        this.resetAccount();
+        this.setData({ error: e.message || '作品加载失败，请重试', canBrowse: false, canShare: false });
+      }
+    } finally {
+      if (this.current(epoch)) this.setData({ loading: false });
     }
-    this.setData({ loading: false });
   },
 
   /** 从全部记录聚合各维度标签及使用次数 */
@@ -113,6 +222,7 @@ Page({
   },
 
   toggleDim(e) {
+    if (!this.canEditFilters()) return;
     const { dim, index } = e.currentTarget.dataset;
     const key = `dims[${dim}].options[${index}].on`;
     this.setData({ [key]: !this.data.dims[dim].options[index].on });
@@ -120,17 +230,20 @@ Page({
   },
 
   toggleFlower(e) {
+    if (!this.canEditFilters()) return;
     const i = e.currentTarget.dataset.index;
     this.setData({ [`flowers[${i}].on`]: !this.data.flowers[i].on });
     this.compute();
   },
 
   setRoleMode(e) {
+    if (!this.canEditFilters() || !ROLE_TABS.some(r => r.key === e.currentTarget.dataset.mode)) return;
     this.setData({ roleMode: e.currentTarget.dataset.mode });
     this.compute();
   },
 
   clearAll() {
+    if (!this.canEditFilters()) return;
     const dims = this.data.dims.map(d => ({
       key: d.key, name: d.name,
       options: d.options.map(o => ({ name: o.name, count: o.count, on: false }))
@@ -148,7 +261,7 @@ Page({
     const hasFilter = dimKeys.length > 0 || flowerSel.length > 0;
     const role = this.data.roleMode;
 
-    const matched = this.data.records.filter(r => {
+    this._matched = this.data.records.filter(r => {
       for (const key of dimKeys) {
         const wanted = Object.keys(sel[key]);
         const val = r[key];
@@ -166,24 +279,199 @@ Page({
       return true;
     });
 
-    this.setData({ hasFilter, results: matched.slice(0, 60) });
-    this.resolveUrls(matched.slice(0, 60));
+    const summary = dimKeys.map(k => {
+      const dim = this.data.dims.find(d => d.key === k);
+      return `${dim ? dim.name : k}：${Object.keys(sel[k]).join('、')}`;
+    });
+    if (flowerSel.length) summary.unshift(`花材（${ROLE_TABS.find(r => r.key === role).name}）：${flowerSel.join('、')}`);
+    this._limit = BATCH_SIZE;
+    this.setData({ hasFilter, filterSummary: summary.join('；') || '未设置筛选条件' });
+    this.renderResults();
   },
 
-  async resolveUrls(list) {
+  canEditFilters() {
+    return this._visible && this.data.canBrowse && !this.data.checking && !this.data.loading && !this.data.error
+      && !this.data.filtersCollapsed && !this.data.selecting && !this.data.sharing;
+  },
+  toggleFilters() {
+    if (!this._visible || !this.data.canBrowse || this.data.checking || this.data.selecting || this.data.sharing || this.data.loading) return;
+    this.setData({ filtersCollapsed: !this.data.filtersCollapsed });
+  },
+  renderResults(refreshImages = false) {
+    const results = this._matched.slice(0, this._limit).map(r => {
+      const fileID = r.thumbFileID || r.fileID || '';
+      return Object.assign({
+        _id: r._id, fileID, url: '', imageFailed: !fileID, imageLoading: !!fileID,
+        desc: [r.category, (r.flowersMain || [])[0], r.style].filter(Boolean).join(' · ') || '花艺作品'
+      }, this._images.get(r._id), { selected: this._selected.has(r._id) });
+    });
+    this.setData({
+      results, matchedCount: this._matched.length,
+      hasMoreResults: results.length < this._matched.length, selectedCount: this._selected.size
+    });
+    return this.resolveUrls(results.filter(r => r.fileID &&
+      (refreshImages || !r.url || r.imageFailed || Date.now() - (r.urlTime || 0) >= 8 * 60 * 1000)));
+  },
+  loadMoreResults() {
+    if (!this._visible || !this.data.canBrowse || this.data.checking || this.data.loading || !this.data.hasMoreResults || this.data.error) return;
+    this._limit += BATCH_SIZE;
+    return this.renderResults();
+  },
+  async resolveUrls(list, force = false) {
+    const seq = ++this._urlSeq;
+    const epoch = this._epoch;
     if (!list.length) return;
     try {
-      const map = await api.getTempUrls(list.map(r => r.thumbFileID || r.fileID)); // 展示用缩略图，旧记录回退原图
-      const results = list.map(r => ({
-        _id: r._id,
-        url: map[r.thumbFileID || r.fileID] || '',
-        desc: [r.category, (r.flowersMain || [])[0], r.style].filter(Boolean).join(' · ')
+      const map = await api.getTempUrls(Array.from(new Set(list.map(r => r.fileID).filter(Boolean))),
+        { force, recordIDs: list.map(r => r._id) });
+      if (!this.current(epoch) || seq !== this._urlSeq) return;
+      list.forEach(r => this._images.set(r._id, { url: map[r.fileID] || '', urlTime: Date.now(), imageFailed: !map[r.fileID], imageLoading: !!map[r.fileID] }));
+    } catch (e) {
+      if (!this.current(epoch) || seq !== this._urlSeq) return;
+      list.forEach(r => this._images.set(r._id, { url: '', imageFailed: true, imageLoading: false }));
+    }
+    if (this.current(epoch) && seq === this._urlSeq) this.updateCards();
+  },
+  updateCards() {
+    this.setData({
+      results: this.data.results.map(r => Object.assign({}, r, this._images.get(r._id), { selected: this._selected.has(r._id) })),
+      selectedCount: this._selected.size
+    });
+  },
+  imageError(e) {
+    const { id, url } = e.currentTarget.dataset;
+    const index = this.data.results.findIndex(r => r._id === id && r.url === url);
+    if (!this._visible || index < 0) return;
+    this._images.set(id, { url, imageFailed: true, imageLoading: false });
+    // 定向更新单张卡片；整表 setData 会让每次图片回调的开销随结果数线性放大。
+    this.setData({ ['results[' + index + '].imageLoading']: false, ['results[' + index + '].imageFailed']: true });
+  },
+  imageLoad(e) {
+    const { id, url } = e.currentTarget.dataset;
+    const index = this.data.results.findIndex(r => r._id === id && r.url === url);
+    if (!this._visible || index < 0) return;
+    this._images.set(id, Object.assign({}, this._images.get(id), { url, imageFailed: false, imageLoading: false }));
+    this.setData({ ['results[' + index + '].imageLoading']: false, ['results[' + index + '].imageFailed']: false });
+  },
+  retryImage(e) {
+    if (!this._visible || !this.data.canBrowse || this.data.checking || this.data.sharing) return;
+    const row = this.data.results.find(r => r._id === e.currentTarget.dataset.id);
+    if (!row || !row.fileID || row.imageLoading) return;
+    this._images.set(row._id, { url: '', imageFailed: false, imageLoading: true });
+    this.updateCards();
+    // 重试整批尚未完成的图片，废弃旧请求时也不会留下其他卡片永久加载。
+    return this.resolveUrls(this.data.results.filter(r => r.fileID && (!r.url || r.imageFailed)), true);
+  },
+  readySelection() {
+    return this._visible && this.data.canShare && !this.data.checking && !this.data.loading && !this.data.error && !this.data.sharing;
+  },
+  async queryShareStatus(epoch) {
+    const ticket = onboarding.capture(this);
+    try {
+      const status = await api.getAccessStatus();
+      if (this.current(epoch)) onboarding.present(this, status, ticket);
+      return status;
+    }
+    catch (error) {
+      if (this.current(epoch)) {
+        this.resetAccount();
+        this.setData({ canBrowse: false, canShare: false, error: error.message || '暂时无法确认账号，请重试' });
+      }
+      throw error;
+    }
+  },
+  startSelecting() {
+    if (!this.readySelection() || !this._matched.length) return;
+    this._selected.clear();
+    this.setData({ selecting: true, filtersCollapsed: true });
+    this.updateCards();
+  },
+  setSelection(ids) {
+    const error = selectionError(ids);
+    if (error) { wx.showToast({ title: error, icon: 'none' }); return; }
+    this._selected = new Set(ids);
+    this.updateCards();
+  },
+  selectAll() {
+    if (this.readySelection() && this.data.selecting) this.setSelection(this._matched.map(r => r._id));
+  },
+  invertSelection() {
+    if (this.readySelection() && this.data.selecting) this.setSelection(this._matched.filter(r => !this._selected.has(r._id)).map(r => r._id));
+  },
+  cancelSelection() {
+    if (this.data.sharing) return;
+    this._selected.clear();
+    this.setData({ selecting: false, selectedCount: 0 });
+    this.updateCards();
+  },
+  async createSelected() {
+    if (!this.readySelection() || !this.data.selecting || !this._selected.size || this._unknownCreation) return;
+    const recordIds = Array.from(this._selected);
+    const error = selectionError(recordIds);
+    if (error) { wx.showToast({ title: error, icon: 'none' }); return; }
+    const epoch = this._epoch;
+    const identity = this._identity;
+    this.setData({ sharing: true });
+    try {
+      const accepted = await new Promise((resolve, reject) => wx.showModal({
+        title: `分享 ${recordIds.length} 件精选作品`,
+        content: `仅分享本次选中的 ${recordIds.length} 件作品及附加图，后续新增作品不会自动加入。不会修改单件分享状态或替换已有作品集。已下载图片或仍有效的临时图片链接无法追溯收回。确定创建吗？`,
+        confirmText: '创建链接', confirmColor: '#2d6543',
+        success: r => resolve(r.confirm), fail: () => reject(new Error('确认窗口打开失败，请重试'))
       }));
-      this.setData({ results });
-    } catch (e) { console.error(e); }
+      if (!accepted || !this.current(epoch)) return;
+      const status = await this.queryShareStatus(epoch);
+      if (!this.current(epoch)) return;
+      if (!this.applyStatus(status) || identity !== this._identity || !this.data.canShare) throw new Error('账号状态已变化，请重新检查');
+      if (this._dirty !== (getApp().globalData.dbUpdateTime || 0)) {
+        this.setData({ sharing: false });
+        this.cancelSelection();
+        await this.onShow();
+        throw new Error('作品已更新，请重新选择');
+      }
+      this._createSent = true;
+      const result = await api.createPortfolioShare('selected', recordIds);
+      if (!this.current(epoch)) return;
+      this._createSent = false;
+      if (!result || !result.token) throw new Error('未取得链接，请到作品集分享管理页核查');
+      this.setData({ createdToken: result.token, sharing: false });
+      this.cancelSelection();
+      await this.openCreated();
+    } catch (e) {
+      if (this.current(epoch)) wx.showToast({ title: e.message || '创建失败，选择已保留', icon: 'none' });
+    } finally {
+      if (this.current(epoch)) { this._createSent = false; this.setData({ sharing: false }); }
+    }
+  },
+  async openCreated() {
+    if (!this.readySelection() || !this.data.createdToken || this.data.opening) return;
+    const epoch = this._epoch;
+    const identity = this._identity;
+    const token = this.data.createdToken;
+    this.setData({ opening: true });
+    try {
+      const status = await this.queryShareStatus(epoch);
+      if (!this.current(epoch)) return;
+      if (!this.applyStatus(status) || identity !== this._identity || !this.data.canShare) throw new Error('账号状态已变化，请重新检查');
+      await new Promise((resolve, reject) => wx.navigateTo({
+        url: '/pages/portfolio-share/portfolio-share?portfolioToken=' + encodeURIComponent(token),
+        success: resolve,
+        fail: () => reject(new Error('链接已创建，可重试打开或到「我的 → 作品集分享」查看'))
+      }));
+    } catch (e) {
+      if (this.current(epoch)) wx.showToast({ title: e.message, icon: 'none' });
+    } finally {
+      if (this.current(epoch)) this.setData({ opening: false });
+    }
   },
 
   goDetail(e) {
-    wx.navigateTo({ url: '/pages/detail/detail?id=' + e.currentTarget.dataset.id });
+    if (!this._visible || !this.data.canBrowse || this.data.checking || this.data.loading || this.data.error || this.data.sharing) return;
+    const id = e.currentTarget.dataset.id;
+    if (!this.data.results.some(r => r._id === id)) return;
+    if (this.data.selecting) {
+      if (!this.readySelection()) return;
+      this.setSelection(this._selected.has(id) ? Array.from(this._selected).filter(v => v !== id) : Array.from(this._selected).concat(id));
+    } else wx.navigateTo({ url: '/pages/detail/detail?id=' + encodeURIComponent(id) });
   }
 });

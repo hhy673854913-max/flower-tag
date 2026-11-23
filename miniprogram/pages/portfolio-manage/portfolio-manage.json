@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "作品集分享",
+  "enablePullDownRefresh": true,
+  "backgroundTextStyle": "dark",
+  "usingComponents": { "welcome-guide": "/components/welcome-guide/index" }
+}

@@ -1,0 +1,33 @@
+page { background: #f7f8f3; }
+.about-page { padding: 42rpx 32rpx calc(48rpx + env(safe-area-inset-bottom)); color: #27392c; }
+.about-heading { padding: 12rpx 8rpx 42rpx; }
+.eyebrow, .card-index { font-size: 21rpx; letter-spacing: 3rpx; color: #738271; }
+.about-title { margin: 24rpx 0; font-family: "Songti SC", "STSong", serif; font-size: 52rpx; font-weight: 600; line-height: 1.4; letter-spacing: 2rpx; }
+.title-line { display: block; }
+.about-intro { max-width: 560rpx; color: #687367; font-size: 25rpx; line-height: 1.8; }
+.journal-card { margin-bottom: 24rpx; padding: 32rpx; border: 1rpx solid #dfe5d9; border-radius: 20rpx; background: #fffdf8; }
+.product-card { border-top: 5rpx solid #2d6543; }
+.card-title { margin: 22rpx 0 16rpx; font-size: 31rpx; font-weight: 600; line-height: 1.5; }
+.card-copy, .update-row { font-size: 26rpx; line-height: 1.85; }
+.small-copy { font-size: 23rpx; line-height: 1.85; color: #748071; }
+.dimension-row { display: flex; flex-wrap: wrap; margin: 24rpx 0 16rpx; }
+.dimension-row text { margin: 0 12rpx 12rpx 0; padding: 8rpx 18rpx; border-radius: 6rpx; color: #386047; background: #edf1e7; font-size: 23rpx; }
+.card-top { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12rpx; }
+.environment, .development-badge { font-size: 21rpx; color: #54705b; }
+.version-title { font-size: 36rpx; font-family: Georgia, "Songti SC", serif; margin: 24rpx 0 14rpx; line-height: 1.5; word-break: break-all; }
+.log-caption { margin-top: 26rpx; font-size: 23rpx; color: #54705b; font-weight: 600; }
+.update-row { display: flex; align-items: flex-start; margin-top: 14rpx; }
+.update-row text { flex: 1; min-width: 0; overflow-wrap: break-word; }
+.log-dot { flex-shrink: 0; width: 7rpx; height: 7rpx; border-radius: 50%; background: #8caa88; margin: 21rpx 17rpx 0 0; }
+.development-card { background: #edf2e8; border-color: #d8e2d1; }
+.development-badge { padding: 6rpx 12rpx; border: 1rpx solid #c9d7c1; border-radius: 6rpx; }
+.privacy-entry { width: 100%; margin: 8rpx 0 48rpx; padding: 26rpx 28rpx; display: flex; align-items: center; justify-content: space-between; text-align: left; background: transparent; color: #2d6543; line-height: 1.6; border: 1rpx solid #cbd8c5; border-radius: 16rpx; }
+.privacy-entry::after { border: none; }
+.privacy-title { font-size: 28rpx; font-weight: 600; margin-bottom: 4rpx; }
+.privacy-arrow { font-size: 42rpx; font-weight: 300; margin-left: 18rpx; }
+.privacy-pressed { background: #e9eee3; }
+.history-heading { padding: 0 8rpx 26rpx; }
+.history-title { font-family: "Songti SC", "STSong", serif; font-size: 38rpx; margin: 20rpx 0 14rpx; }
+.history-card { padding-top: 26rpx; }
+.history-version { font-family: Georgia, serif; font-size: 33rpx; color: #2d6543; letter-spacing: 1rpx; padding-bottom: 15rpx; border-bottom: 1rpx solid #e8ebe2; }
+.about-footer { text-align: center; margin-top: 40rpx; font-size: 22rpx; letter-spacing: 3rpx; color: #97a18e; }
