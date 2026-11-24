@@ -204,16 +204,24 @@ Page({
         sizeType: lossless ? ['original'] : ['compressed']
       }));
       await controller.checkpoint();
+      // 选图预检：格式或大小不符的图片不进入上传，只处理通过的图片。
+      const picked = imageUtils.checkFiles(res.tempFiles);
+      if (picked.skipped.length) wx.showToast(imageUtils.skipToast(picked.skipped));
+      if (!picked.accepted.length) {
+        await controller.cancel('cancel');
+        return;
+      }
       await controller.begin();
       const jobIds = [];
+      const files = picked.accepted;
 
-      for (let i = 0; i < res.tempFiles.length; i++) {
-        const f = res.tempFiles[i];
+      for (let i = 0; i < files.length; i++) {
+        const f = files[i];
         await controller.checkpoint();
         const job = await controller.prepare(i, f.tempFilePath);
         await controller.checkpoint();
         if (!current()) return;
-        this.setData({ extrasMessage: '正在上传附加图 ' + (i + 1) + ' / ' + res.tempFiles.length });
+        this.setData({ extrasMessage: '正在上传附加图 ' + (i + 1) + ' / ' + files.length });
         // 1. 上传原图
         await api.uploadWorkImage(f.tempFilePath, null, { job, controller });
         await controller.checkpoint();

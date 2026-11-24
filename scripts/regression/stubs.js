@@ -216,6 +216,9 @@ function loadApi() { purgeAll(); return require('../../miniprogram/utils/api.js'
 function loadIndexPage() { purgeAll(); require('../../miniprogram/pages/index/index.js'); return global.__pageConfig; }
 function loadFilterPage() { purgeAll(); require('../../miniprogram/pages/filter/filter.js'); return global.__pageConfig; }
 function loadImageUtil() { purgeAll(); return require('../../miniprogram/utils/image.js'); }
+function loadMyPage() { purgeAll(); require('../../miniprogram/pages/my/my.js'); return global.__pageConfig; }
+function loadUploadPage() { purgeAll(); require('../../miniprogram/pages/upload/upload.js'); return global.__pageConfig; }
+function loadDetailPage() { purgeAll(); require('../../miniprogram/pages/detail/detail.js'); return global.__pageConfig; }
 
 /* 客户端全局桩与页面实例构造 */
 function installClientGlobals() {
@@ -323,5 +326,5 @@ function makePageInstance(config, data) {
 
 module.exports = {
   newServerFixture, installClientGlobals, makePageInstance,
-  loadGate, loadApi, loadIndexPage, loadFilterPage, loadImageUtil, MP
+  loadGate, loadApi, loadIndexPage, loadFilterPage, loadImageUtil, loadMyPage, loadUploadPage, loadDetailPage, MP
 };

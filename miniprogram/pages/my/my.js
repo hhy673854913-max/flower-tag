@@ -345,11 +345,23 @@ Page({
     this.openPublicPage('/pages/creator-card/creator-card', '名片');
   },
 
+  // 逐个停止本人的作品集分享链接：复用单条停止接口，不新增云函数入口。
+  async stopOwnPortfolioShares() {
+    let cursor = '';
+    for (;;) {
+      const page = await api.listPortfolioShares(cursor);
+      for (const link of page.records || []) {
+        if (link.enabled) await api.stopPortfolioShare(link.id);
+      }
+      if (!page.hasMore || !page.nextCursor || page.nextCursor === cursor) return;
+      cursor = page.nextCursor;
+    }
+  },
   clearAll() {
     if (!this.privateReady() || this._clearingAll) return;
     wx.showModal({
       title: '清空全部数据',
-      content: '将放弃未保存图片并删除全部本人作品及云端图片，保留自定义词条与反馈。不可恢复，确定继续吗？',
+      content: '将放弃未保存图片，停止全部作品集分享链接，并删除全部本人作品及云端图片；保留自定义词条与反馈。不可恢复，确定继续吗？',
       confirmText: '确认清空',
       confirmColor: '#c0392b',
       success: async res => {
@@ -360,6 +372,8 @@ Page({
           await uploadFlow.cancelAll();
           let sessions = await api.closeOwnUploadSessions();
           while (sessions.hasMore) sessions = await api.closeOwnUploadSessions(sessions.nextCursor);
+          // 先停止分享再删作品：即使中途被打断，访客也已经进不来。
+          await this.stopOwnPortfolioShares();
           const records = await api.fetchAllRecords({ includeDeleting: true });
           for (const r of records) {
             await api.removeRecord(r._id);

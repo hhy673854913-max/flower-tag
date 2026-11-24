@@ -183,7 +183,11 @@ Page({
       }));
       await guard.checkpoint();
       if (this._disposed || this.data.running) return;
-      const items = res.tempFiles.map(f => ({
+      // 选图预检：格式或大小不符的图片不进入上传，只处理通过的图片。
+      const picked = imageUtils.checkFiles(res.tempFiles);
+      if (picked.skipped.length) wx.showToast(imageUtils.skipToast(picked.skipped));
+      if (!picked.accepted.length || this._disposed) return;
+      const items = picked.accepted.map(f => ({
         tempPath: f.tempFilePath,
         status: 'pending',
         error: '',

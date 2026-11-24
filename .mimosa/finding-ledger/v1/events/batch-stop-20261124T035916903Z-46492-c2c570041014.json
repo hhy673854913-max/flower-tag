@@ -1,0 +1,103 @@
+{
+  "schemaVersion": "mimosa-finding-ledger-batch/v1",
+  "batchId": "stop-20261124T035916903Z-46492-c2c570041014",
+  "runId": "20261124T035916903Z-46492-c2c570041014",
+  "runStatus": "completed",
+  "coverage": {
+    "status": "complete",
+    "reasons": []
+  },
+  "source": {
+    "component": "zcode-hook",
+    "operationId": "Stop"
+  },
+  "revision": "87fbee1b308860924f35ce750890d5b40a1e9299",
+  "diffHash": "b1dad7fb175c481cba2b2c99231d42ef45b8818231dccb1cf51cb44aef43b752",
+  "rulesVersion": "unavailable",
+  "sessionHash": "d58b1f44cddfc1b727cf7228d2552ed0c229d9427ce978674157dec4502457b9",
+  "reportRef": ".mimosa/reports/task-review-sess_8bfefb56-f04d-4014-92e6-9c40334554b2-20261124T035916903Z-46492-c2c570041014.json",
+  "events": [
+    {
+      "eventId": "hook-a2d82a0fd2bff73cb9fcb51364a701d7",
+      "findingId": "mimosa-0a685e703ccee90658a2d854",
+      "type": "finding_blocked",
+      "at": "2026-11-24T03:04:05.152Z",
+      "identity": {
+        "projectRelativeFile": "miniprogram/utils/image.js",
+        "ruleId": "security",
+        "codeEvidenceHash": "006e9d8feeb8497a4f4adc79b64937aee1d347429e2c605f57ab5e4fa4d07de7",
+        "confidence": "stable"
+      },
+      "scope": "direct",
+      "line": 45,
+      "endLine": 45,
+      "reasonCode": "deny",
+      "reportedToAgent": true,
+      "evidence": {
+        "kind": "source",
+        "boundary": "candidate",
+        "producer": "deterministic",
+        "evidenceHash": "006e9d8feeb8497a4f4adc79b64937aee1d347429e2c605f57ab5e4fa4d07de7"
+      },
+      "sequence": 0
+    },
+    {
+      "eventId": "hook-c7ad20276547f3273f86d04343edadd3",
+      "findingId": "mimosa-0a685e703ccee90658a2d854",
+      "type": "static_fix_verified",
+      "at": "2026-11-24T03:06:11.344Z",
+      "identity": {
+        "projectRelativeFile": "miniprogram/utils/image.js",
+        "ruleId": "security",
+        "codeEvidenceHash": "006e9d8feeb8497a4f4adc79b64937aee1d347429e2c605f57ab5e4fa4d07de7",
+        "confidence": "stable"
+      },
+      "scope": "direct",
+      "line": 45,
+      "endLine": 45,
+      "reasonCode": "static_rescan_passed",
+      "reportedToAgent": false,
+      "evidence": {
+        "kind": "static_scan",
+        "boundary": "observed",
+        "producer": "deterministic",
+        "evidenceHash": "006e9d8feeb8497a4f4adc79b64937aee1d347429e2c605f57ab5e4fa4d07de7"
+      },
+      "sequence": 1
+    }
+  ],
+  "observedFindingIds": [],
+  "verifiedFiles": [
+    {
+      "file": "miniprogram/pages/my/my.js",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "miniprogram/pages/upload/upload.js",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "miniprogram/pages/detail/detail.js",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "miniprogram/utils/image.js",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "scripts/regression/stubs.js",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "scripts/regression/client.test.js",
+      "direct": "complete",
+      "projectContext": "partial"
+    }
+  ],
+  "recordedAt": "2026-11-24T03:59:17.496Z"
+}
